@@ -1,0 +1,15 @@
+in shell:
+
+cmake .
+make
+hdfs dfs -put -f ./build/libpoisson_udf.so /user/hive/udfs/libpoisson_udf.so
+hdfs dfs -put -f ./build/libconfInterval_udf.so /user/hive/udfs/libconfInterval_udf.so
+hdfs dfs -put -f ./build/libverdict_uda.so /user/hive/udfs/libverdict_uda.so
+
+in impala-shell:
+
+drop function if exists verdict.poisson(); create function verdict.poisson () returns tinyint location '/user/hive/udfs/libpoisson_udf.so' symbol='poisson';
+drop function if exists verdict.conf_int(float, double ...) ;create function verdict.conf_int (float, double ...) returns string location '/user/hive/udfs/libconfInterval_udf.so' symbol='confidenceInterval';
+drop aggregate function if exists verdict.my_count(int); create aggregate function verdict.my_count(int) returns bigint location '/user/hive/udfs/libverdict_uda.so' update_fn='CountUpdate';
+drop aggregate function if exists verdict.my_sum(int, double); create aggregate function verdict.my_sum(int, double) returns double location '/user/hive/udfs/libverdict_uda.so' update_fn='SumUpdate';
+drop aggregate function if exists verdict.my_avg(int, double); create aggregate function verdict.my_avg(int, double) returns string location '/user/hive/udfs/libverdict_uda.so' init_fn="AvgInit" merge_fn="AvgMerge" update_fn='AvgUpdate' finalize_fn="AvgFinalize";

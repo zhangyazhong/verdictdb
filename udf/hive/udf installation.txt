@@ -1,0 +1,18 @@
+in shell:
+
+mvn compile
+mvn assembly:single
+
+
+in Hive shell:
+
+delete jar /home/cloudera/shared/udf/hive/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
+add jar /home/cloudera/shared/udf/hive/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
+drop function if exists verdict.poisson; create function verdict.poisson as 'edu.umich.tajik.verdict.hive.udf.Poisson';
+drop function if exists verdict.conf_int; create function verdict.conf_int as 'edu.umich.tajik.verdict.hive.udf.ConfidenceInterval';
+drop function if exists verdict.my_sum; create function verdict.my_sum as 'edu.umich.tajik.verdict.hive.uda.Sum';
+drop function if exists verdict.my_count; create function verdict.my_count as 'edu.umich.tajik.verdict.hive.uda.Count';
+drop function if exists verdict.my_avg; create function verdict.my_avg as 'edu.umich.tajik.verdict.hive.uda.Avg';
+
+verdict config:
+export VERDICT_HIVE_UDF_JAR="/home/tajik/code/verdict-impala/udf/hive/verdict-hive-udf.jar"

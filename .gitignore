@@ -1,0 +1,7 @@
+# IntelliJ
+/.idea
+/verdict.iml
+
+# build
+/out
+target/
