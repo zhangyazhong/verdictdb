@@ -9,11 +9,12 @@ import java.sql.SQLException;
 
 public class ImpalaConnector extends DbConnector {
     private HiveConnector hiveConnector;
+
     public ImpalaConnector(Configuration conf) throws SQLException, ClassNotFoundException {
         super(conf);
         try {
             hiveConnector = new HiveConnector(conf);
-        }catch (Exception e){
+        } catch (Exception e) {
             //TODO: logger
             System.out.println("WARNING: Could not connect to Hive. You can query on existed samples but you cannot " +
                     "create new samples.");
@@ -48,6 +49,7 @@ public class ImpalaConnector extends DbConnector {
     @Override
     public void close() throws SQLException {
         super.close();
-        hiveConnector.close();
+        if (hiveConnector != null)
+            hiveConnector.close();
     }
 }

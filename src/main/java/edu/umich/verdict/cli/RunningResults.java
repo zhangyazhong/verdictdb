@@ -4,6 +4,7 @@ import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.processing.ParsedStatement;
 
+import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -36,7 +37,7 @@ public class RunningResults {
         }
     }
 
-    public void printResults() {
+    public void printResults(PrintWriter out) {
         if (failed) {
             if (ex instanceof SQLException)
                 System.err.println(ex.getMessage());
@@ -46,17 +47,17 @@ public class RunningResults {
         }
 
         //TODO: don't always print it. use logger
-        System.out.println("(" + latency + " ms)");
-        System.out.println();
+        out.println("(" + latency + " ms)");
+        out.println();
 
         if (rs != null) {
             try {
-                ResultWriter.writeResultSet(System.out, rs);
+                ResultWriter.writeResultSet(out, rs);
             } catch (SQLException e) {
                 System.err.println(e.getMessage());
             }
         } else {
-            System.out.println("Done.");
+            out.println("Done.");
         }
     }
 }

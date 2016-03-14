@@ -1,6 +1,7 @@
 package edu.umich.verdict.cli;
 
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.sql.*;
 import java.util.Vector;
 
@@ -11,7 +12,7 @@ public class ResultWriter {
             MIN_WIDTH = 3,
             MAX_RETRIES = 5;
 
-    public static void writeResultSet(PrintStream out, ResultSet rs)
+    public static void writeResultSet(PrintWriter out, ResultSet rs)
             throws SQLException {
 
         ResultSetMetaData rsmd = rs.getMetaData();
@@ -48,7 +49,7 @@ public class ResultWriter {
         }
     }
 
-    static public void ShowWarnings(PrintStream out, SQLWarning warning) {
+    static public void ShowWarnings(PrintWriter out, SQLWarning warning) {
         while (warning != null) {
             String p1 = warning.getSQLState();
             String p2 = warning.getMessage();
@@ -57,7 +58,7 @@ public class ResultWriter {
         }
     }
 
-    static public void ShowWarnings(PrintStream out, ResultSet rs) {
+    static public void ShowWarnings(PrintWriter out, ResultSet rs) {
         try {
             if (rs != null) {
                 ShowWarnings(out, rs.getWarnings());
@@ -71,7 +72,7 @@ public class ResultWriter {
         }
     }
 
-    private static void ShowSQLException(PrintStream out, SQLException e) {
+    private static void ShowSQLException(PrintWriter out, SQLException e) {
         String errorCode;
 
             errorCode = " (errorCode = " + e.getErrorCode() + ")";
@@ -90,7 +91,7 @@ public class ResultWriter {
         return s;
     }
 
-    private static void writeRow(PrintStream out, ResultSet rs, ResultSetMetaData rsmd, int rowLen, int[] displayColumnWidths) throws SQLException {
+    private static void writeRow(PrintWriter out, ResultSet rs, ResultSetMetaData rsmd, int rowLen, int[] displayColumnWidths) throws SQLException {
         StringBuffer buf = new StringBuffer();
         buf.ensureCapacity(rowLen);
 
@@ -132,7 +133,7 @@ public class ResultWriter {
 
             int w = displayColumnWidths[i-1];
             if (s.length() < w) {
-                StringBuffer fullS = new StringBuffer(s);
+                StringBuilder fullS = new StringBuilder(s);
                 fullS.ensureCapacity(w);
                 for (int k=s.length(); k<w; k++)
                     fullS.append(' ');
@@ -147,7 +148,7 @@ public class ResultWriter {
         out.println(buf);
     }
 
-    private static int writeHeader(PrintStream out, ResultSetMetaData rsmd, int[] displayColumnWidths) throws SQLException {
+    private static int writeHeader(PrintWriter out, ResultSetMetaData rsmd, int[] displayColumnWidths) throws SQLException {
         StringBuffer buf = new StringBuffer();
 
         int numCols = displayColumnWidths.length;
