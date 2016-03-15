@@ -33,6 +33,38 @@ public class Cli {
         }
     }
 
+    private static Configuration getConfig(String[] args) throws FileNotFoundException {
+        if (args.length != 2 && args.length != 4)
+            return null;
+        String file = null, dbms = null;
+        switch (args[0]) {
+            case "-dbms":
+                dbms = args[1];
+                break;
+            case "-conf":
+                file = args[1];
+                break;
+            default:
+                return null;
+        }
+        if (args.length == 4) {
+            switch (args[2]) {
+                case "-dbms":
+                    dbms = args[3];
+                    break;
+                case "-conf":
+                    file = args[3];
+                    break;
+                default:
+                    return null;
+            }
+        }
+        Configuration conf = file == null ? new Configuration() : new Configuration(new File(file));
+        if (dbms != null)
+            conf.set("dbms", dbms);
+        return conf;
+    }
+
     private DbConnector connector;
     private final String PROMPT = "verdict> ";
     private Configuration config;
@@ -92,38 +124,6 @@ public class Cli {
         }
     }
 
-    private static Configuration getConfig(String[] args) throws FileNotFoundException {
-        if (args.length != 2 && args.length != 4)
-            return null;
-        String file = null, dbms = null;
-        switch (args[0]) {
-            case "-dbms":
-                dbms = args[1];
-                break;
-            case "-conf":
-                file = args[1];
-                break;
-            default:
-                return null;
-        }
-        if (args.length == 4) {
-            switch (args[2]) {
-                case "-dbms":
-                    dbms = args[3];
-                    break;
-                case "-conf":
-                    file = args[3];
-                    break;
-                default:
-                    return null;
-            }
-        }
-        Configuration conf = file == null ? new Configuration() : new Configuration(new File(file));
-        if (dbms != null)
-            conf.set("dbms", dbms);
-        return conf;
-    }
-
     private void run() {
         while (true) {
             out.flush();
@@ -148,8 +148,10 @@ public class Cli {
                 e.printStackTrace();
                 return null;
             }
-            if (l == null)
+            if (l == null) {
+                out.println("nullll");
                 return null;
+            }
             l = l.trim();
             if (!l.isEmpty())
                 q += l + " ";

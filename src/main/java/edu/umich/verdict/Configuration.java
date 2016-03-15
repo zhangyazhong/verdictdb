@@ -1,9 +1,8 @@
 package edu.umich.verdict;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.Scanner;
 
 public class Configuration {
@@ -15,21 +14,21 @@ public class Configuration {
 
     public Configuration(File file) throws FileNotFoundException {
         this();
-        updateFromFile(file);
+        updateFromStream(new FileInputStream(file));
     }
 
     private Configuration setDefaults() {
         try {
             ClassLoader cl = this.getClass().getClassLoader();
-            File file = new File(cl.getResource("default.conf").getFile());
-            updateFromFile(file);
-        } catch (FileNotFoundException ignored) {
+            updateFromStream(cl.getResourceAsStream("default.conf"));
+        } catch (FileNotFoundException e) {
+            System.err.println(e.getMessage());
         }
         return this;
     }
 
-    private Configuration updateFromFile(File file) throws FileNotFoundException {
-        Scanner scanner = new Scanner(new FileReader(file));
+    private Configuration updateFromStream(InputStream stream) throws FileNotFoundException {
+        Scanner scanner = new Scanner(stream);
         while (scanner.hasNext()) {
             String line = scanner.nextLine();
             if (!line.isEmpty() && !line.startsWith("#"))
