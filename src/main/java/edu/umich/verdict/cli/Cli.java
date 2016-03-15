@@ -11,6 +11,7 @@ import java.sql.SQLException;
 
 import jline.console.ConsoleReader;
 import jline.console.history.*;
+import org.apache.commons.cli.*;
 
 public class Cli {
     public static void main(String[] args) {
@@ -22,8 +23,8 @@ public class Cli {
             return;
         }
         if (conf == null) {
-            System.err.println("Wrong argument, You should either specify a DBMS to connect to (e.g. '-dbms  " +
-                    "impala') or provide a config file (e.g. '-conf path/to/file.config'");
+            System.err.println("Wrong arguments, You should either specify a DBMS to connect to (e.g. '-dbms " +
+                    "impala') or provide a config file (e.g. '-conf path/to/file.config')");
             return;
         }
         try {
@@ -34,39 +35,32 @@ public class Cli {
     }
 
     private static Configuration getConfig(String[] args) throws FileNotFoundException {
-        if (args.length != 2 && args.length != 4)
+        Options options = new Options();
+        options.addOption(Option.builder("dbms")
+                .hasArg()
+                .longOpt("dbms")
+                .desc("The DBMS on top of which Verdict runs (Impala, Hive, etc.)")
+                .build());
+
+        options.addOption(Option.builder("conf")
+                .hasArg()
+                .longOpt("conf")
+                .desc("Path to config file")
+                .build());
+
+        try {
+            org.apache.commons.cli.CommandLine commandLine = new DefaultParser().parse(options, args);
+            String dbms = commandLine.getOptionValue("dbms", null), file = commandLine.getOptionValue("conf", null);
+            Configuration conf = file == null ? new Configuration() : new Configuration(new File(file));
+            if (dbms != null)
+                conf.set("dbms", dbms);
+            return conf;
+        } catch (ParseException e) {
             return null;
-        String file = null, dbms = null;
-        switch (args[0]) {
-            case "-dbms":
-                dbms = args[1];
-                break;
-            case "-conf":
-                file = args[1];
-                break;
-            default:
-                return null;
         }
-        if (args.length == 4) {
-            switch (args[2]) {
-                case "-dbms":
-                    dbms = args[3];
-                    break;
-                case "-conf":
-                    file = args[3];
-                    break;
-                default:
-                    return null;
-            }
-        }
-        Configuration conf = file == null ? new Configuration() : new Configuration(new File(file));
-        if (dbms != null)
-            conf.set("dbms", dbms);
-        return conf;
     }
 
     private DbConnector connector;
-    private final String PROMPT = "verdict> ";
     private Configuration config;
     private ConsoleReader reader;
     private PrintWriter out;
@@ -136,13 +130,14 @@ public class Cli {
     }
 
     private String getNewQuery() {
+        final String PROMPT = "verdict> ";
         String q = "", l = "";
         History h = reader.getHistory();
         int hSize = h.size();
         String multilinePrompt = "       > ";
         while (!l.trim().endsWith(";")) {
             try {
-                l = reader.readLine(q.isEmpty()?PROMPT:multilinePrompt, null);
+                l = reader.readLine(q.isEmpty() ? PROMPT : multilinePrompt, null);
             } catch (IOException e) {
                 System.err.print("jLine error:");
                 e.printStackTrace();

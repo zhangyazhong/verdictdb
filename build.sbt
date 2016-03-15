@@ -1,6 +1,7 @@
 import AssemblyKeys._
 
 libraryDependencies += "jline" % "jline" % "2.12.1"
+libraryDependencies += "commons-cli" % "commons-cli" % "1.3.1"
 
 lazy val buildSettings = Seq(
   organization := "edu.umich",
