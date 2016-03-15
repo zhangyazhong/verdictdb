@@ -19,27 +19,22 @@ public class SelectStatement extends ParsedStatement {
     public ResultSet run(Configuration conf, DbConnector connector) throws SQLException {
         ResultSet rs;
         TransformedQuery transformed = new QueryTransformer(conf, connector.getMetaDataManager(), this).transform();
-        try {
-            String q = transformed.toString();
-            if (transformed.isChanged()) {
-                info("New ParsedStatement:");
-                info(q);
-                info("\n");
-                info("Using Sample: " + transformed.getSample().name + " Size: " + (transformed.getSample().compRatio *
-                        100) + "%" + " Type: " + (transformed.getSample().stratified ? "Stratified" : "Uniform"));
-                info("Bootstrap Trials: " + transformed.getBootstrapRepeats());
-                info("Method: " + transformed.getMethod());
-                rs = connector.executeQuery(q);
-                //TODO: do we need this?
+        String q = transformed.toString();
+        if (transformed.isChanged()) {
+            info("New ParsedStatement:");
+            info(q);
+            info("\n");
+            info("Using Sample: " + transformed.getSample().name + " Size: " + (transformed.getSample().compRatio *
+                    100) + "%" + " Type: " + (transformed.getSample().stratified ? "Stratified" : "Uniform"));
+            info("Bootstrap Trials: " + transformed.getBootstrapRepeats());
+            info("Method: " + transformed.getMethod());
+            rs = connector.executeQuery(q);
+            //TODO: do we need this?
 //                if (!transformer.isUseConfIntUdf())
 //                    rs = new ResultSetWrapper(rs, transformed);
-            } else {
-                info("Running the original query...");
-                rs = connector.executeQuery(q);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error in executing query:");
-            throw e;
+        } else {
+            info("Running the original query...");
+            rs = connector.executeQuery(q);
         }
         return rs;
     }

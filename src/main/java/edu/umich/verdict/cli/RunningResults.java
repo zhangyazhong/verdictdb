@@ -39,8 +39,10 @@ public class RunningResults {
 
     public void printResults(PrintWriter out) {
         if (failed) {
-            if (ex instanceof SQLException)
+            if (ex instanceof SQLException) {
+                System.err.print("Error: ");
                 System.err.println(ex.getMessage());
+            }
             else
                 ex.printStackTrace();
             return;

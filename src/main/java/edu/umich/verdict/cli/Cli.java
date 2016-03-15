@@ -73,7 +73,6 @@ public class Cli {
 
     public Cli(Configuration config) throws Exception {
         this.config = config;
-        System.out.println(config.get("dbms"));
         this.connector = DbConnector.createConnector(config);
         System.out.println("Successfully connected to " + config.get("dbms") + ".");
         System.out.println(connector.getMetaDataManager().getSamplesCount() + " registered sample(s) found.");
@@ -99,7 +98,6 @@ public class Cli {
     private void setReader() throws IOException {
         reader = new ConsoleReader();
         out = new PrintWriter(reader.getOutput());
-        reader.setPrompt(PROMPT);
         reader.setExpandEvents(false);
         reader.setBellEnabled(false);
         setupHistory();
@@ -134,36 +132,34 @@ public class Cli {
             rr.run(config, connector);
             rr.printResults(out);
         }
+        System.exit(0);
     }
 
     private String getNewQuery() {
         String q = "", l = "";
         History h = reader.getHistory();
         int hSize = h.size();
+        String multilinePrompt = "       > ";
         while (!l.trim().endsWith(";")) {
             try {
-                l = reader.readLine();
+                l = reader.readLine(q.isEmpty()?PROMPT:multilinePrompt, null);
             } catch (IOException e) {
                 System.err.print("jLine error:");
                 e.printStackTrace();
                 return null;
             }
-            if (l == null) {
-                out.println("nullll");
+            if (l == null)
                 return null;
-            }
             l = l.trim();
             if (!l.isEmpty())
                 q += l + " ";
             if (q.equals("\\q "))
                 return null;
-            reader.setPrompt("       > ");
         }
         q = q.trim();
         while (hSize < h.size())
             h.removeLast();
         h.add(q);
-        reader.setPrompt(PROMPT);
         return q;
     }
 }
