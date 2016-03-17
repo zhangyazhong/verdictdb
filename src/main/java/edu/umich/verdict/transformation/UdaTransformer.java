@@ -2,13 +2,7 @@ package edu.umich.verdict.transformation;
 
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.MetaDataManager;
-import edu.umich.verdict.models.Sample;
-import edu.umich.verdict.parser.HplsqlBaseVisitor;
-import edu.umich.verdict.parser.HplsqlParser;
-import edu.umich.verdict.parser.TsqlBaseVisitor;
-import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.SelectStatement;
-import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 
 import java.util.Random;
 
@@ -29,7 +23,7 @@ public class UdaTransformer extends QueryTransformer {
                 StringBuilder buf = new StringBuilder(", ");
                 //TODO: also handle without conf_int
                 buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
-                for (int i = 0; i < bootstrapRepeats; i++)
+                for (int i = 0; i < bootstrapTrials; i++)
                     buf.append(uda).append("(").append(getRandomSeed()).append(", ").append(expr).append("), ");
                 buf.replace(buf.length() - 2, buf.length(), ")");
                 buf.append(" AS CI_").append(item.index).append(" ");

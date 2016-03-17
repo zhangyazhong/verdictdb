@@ -24,10 +24,9 @@ public abstract class QueryTransformer {
     protected final TokenStreamRewriter rewriter;
     protected SelectStatement q;
     protected TransformedQuery transformed;
-    protected final int bootstrapRepeats;
+    protected final int bootstrapTrials;
     protected final double confidence;
     protected final String sampleType;
-    private final boolean useSamples;
     private final double preferredSample;
     //TODO: do we need this?
     private final boolean useConfIntUdf = true;
@@ -43,20 +42,26 @@ public abstract class QueryTransformer {
     public static QueryTransformer forConfig(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
         if (!conf.getBoolean("bootstrap"))
             return new IdenticalTransformer(conf, metaDataManager, q);
-        return new UdaTransformer(conf, metaDataManager, q);
+        switch (conf.get("bootstrap.method")) {
+            case "uda":
+                return new UdaTransformer(conf, metaDataManager, q);
+            case "stored":
+                return new StoredTransformer(conf, metaDataManager, q);
+            default:
+                return new IdenticalTransformer(conf, metaDataManager, q);
+        }
     }
 
     public QueryTransformer(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
         this.q = q;
         this.metaDataManager = metaDataManager;
         rewriter = q.getRewriter();
-        useSamples = conf.getBoolean("bootstrap");
         confidence = conf.getPercent("bootstrap.confidence");
-        bootstrapRepeats = conf.getInt("bootstrap.trials");
+        bootstrapTrials = conf.getInt("bootstrap.trials");
         preferredSample = conf.getPercent("bootstrap.sample-size");
         method = conf.get("bootstrap.method").toLowerCase();
         sampleType = conf.get("bootstrap.sample-type").toLowerCase();
-        transformed = new TransformedQuery(q, bootstrapRepeats, confidence, method);
+        transformed = new TransformedQuery(q, bootstrapTrials, confidence, method);
     }
 
     protected boolean replaceTableNames() {
@@ -112,9 +117,9 @@ public abstract class QueryTransformer {
 //                    if (itemInfo.isSupportedAggr) {
 //                        if (!method.equals("uda") && transformed.getAggregates().isEmpty()) {
 //                            StringBuilder buf = new StringBuilder();
-//                            for (int i = 1; i <= samplePoissonCols && i <= bootstrapRepeats; i++)
+//                            for (int i = 1; i <= samplePoissonCols && i <= bootstrapTrials; i++)
 //                                buf.append(", `__p").append(i).append("` ");
-//                            for (int i = samplePoissonCols + 1; i <= bootstrapRepeats; i++)
+//                            for (int i = samplePoissonCols + 1; i <= bootstrapTrials; i++)
 //                                buf.append(", verdict.poisson() as `__p").append(i).append("` ");
 //                            rewriter.insertAfter(list.stop, buf.toString());
 //                        }
@@ -265,6 +270,26 @@ public abstract class QueryTransformer {
         return true;
     }
 
+    protected Sample getSample(String tableName) {
+        double min = 1000;
+        Sample best = null;
+        for (Sample s : metaDataManager.getTableSamples(tableName)) {
+            if ((s.stratified && sampleType.equals("uniform")) || (!s.stratified && sampleType.equals("stratified")))
+                continue;
+            double diff = Math.abs(s.compRatio - preferredSample);
+            if ((min > preferredSample * .2 && diff < min) || (diff <= preferredSample * .2 && best != null &&
+                    getPreferred(s, best) == s)) {
+                min = diff;
+                best = s;
+            }
+        }
+        return best;
+    }
+
+    protected Sample getPreferred(Sample first, Sample second) {
+        return second.poissonColumns > first.poissonColumns ? first : second;
+    }
+
     class SelectListItem {
         int index;
         String expr;
@@ -394,7 +419,7 @@ public abstract class QueryTransformer {
             if (!isSupportedAggr)
                 return "";
             StringBuilder buf = new StringBuilder();
-            for (int i = 1; i <= bootstrapRepeats; i++)
+            for (int i = 1; i <= bootstrapTrials; i++)
                 buf.append("sum(`").append(getStratifiedOuterAlias()).append("_").append(i).append("`),");
             if (useConfIntUdf) {
                 buf.insert(0, "verdict.conf_int(" + confidence + ", ");
@@ -420,7 +445,7 @@ public abstract class QueryTransformer {
             if (!isSupportedAggr)
                 return "";
             StringBuilder buf = new StringBuilder();
-            for (int i = 1; i <= bootstrapRepeats; i++) {
+            for (int i = 1; i <= bootstrapTrials; i++) {
                 if (method.equals("uda"))
                     switch (aggregateType) {
                         case AVG:
@@ -465,34 +490,9 @@ public abstract class QueryTransformer {
             if (!isSupportedAggr)
                 return "";
             StringBuilder buf = new StringBuilder();
-            for (int i = 1; i <= bootstrapRepeats; i++)
+            for (int i = 1; i <= bootstrapTrials; i++)
                 buf.append(getStratifiedScale()).append("`").append(getOuterAlias()).append("_").append(i).append("` as `").append(getStratifiedOuterAlias()).append("_").append(i).append("`,");
             return buf.toString();
         }
     }
-
-    protected Sample getSample(String tableName) {
-        double min = 1000;
-        Sample best = null;
-        for (Sample s : metaDataManager.getTableSamples(tableName)) {
-            if ((s.stratified && sampleType.equals("uniform")) || (!s.stratified && sampleType.equals("stratified")))
-                continue;
-            double diff = Math.abs(s.compRatio - preferredSample);
-            if ((min > preferredSample * .2 && diff < min) || (diff <= preferredSample * .2 && best != null &&
-                    firstIsPreferred(s, best))) {
-                min = diff;
-                best = s;
-            }
-        }
-        return best;
-    }
-
-    private boolean firstIsPreferred(Sample first, Sample second) {
-        if (method.equals("stored"))
-            return second.poissonColumns < bootstrapRepeats && second.poissonColumns < first.poissonColumns;
-        else
-            return second.poissonColumns > first.poissonColumns;
-    }
-
-
 }

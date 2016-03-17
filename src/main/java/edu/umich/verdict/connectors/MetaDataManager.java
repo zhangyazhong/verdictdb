@@ -182,4 +182,9 @@ public class MetaDataManager {
     public char getAliasCharacter() {
         return '\'';
     }
+
+    public String getPossionColumnPrefix() {
+        //TODO: replace with v__p
+        return "__p";
+    }
 }
