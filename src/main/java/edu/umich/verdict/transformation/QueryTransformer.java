@@ -45,6 +45,8 @@ public abstract class QueryTransformer {
         switch (conf.get("bootstrap.method")) {
             case "uda":
                 return new UdaTransformer(conf, metaDataManager, q);
+            case "on the fly":
+                return new OnTheFlyTransformer(conf, metaDataManager, q);
             case "stored":
                 return new StoredTransformer(conf, metaDataManager, q);
             default:
@@ -90,49 +92,6 @@ public abstract class QueryTransformer {
     }
 
     protected abstract boolean addBootstrapTrials();
-//    {
-//        if (selectList == null)
-//            return false;
-//        q.getParseTree().accept(new HplsqlBaseVisitor<Void>() {
-//            public Void visitSelect_list(HplsqlParser.Select_listContext list) {
-//                if (seenSelectList)
-//                    return null;
-//                seenSelectList = true;
-//
-//                innerSelectList = list;
-//                transformed.setOriginalCols(list.select_list_item().size());
-//                int samplePoissonCols = method.equals("stored") ? transformed.getSample().poissonColumns : 0;
-//
-//                for (HplsqlParser.Select_list_itemContext item : list.select_list_item()) {
-//                    SelectListItem itemInfo;
-//                    try {
-//                        itemInfo = new SelectListItem(selectItems.size() + 1, item);
-//                    } catch (Exception e) {
-//                        transformed.getAggregates().clear();
-//                        return null;
-//                    }
-//                    selectItems.add(itemInfo);
-//                    selectExpMap.put(itemInfo.expr, itemInfo.getInnerAlias());
-//                    rewriter.replace(item.start, item.stop, itemInfo.getInnerSql());
-//                    if (itemInfo.isSupportedAggr) {
-//                        if (!method.equals("uda") && transformed.getAggregates().isEmpty()) {
-//                            StringBuilder buf = new StringBuilder();
-//                            for (int i = 1; i <= samplePoissonCols && i <= bootstrapTrials; i++)
-//                                buf.append(", `__p").append(i).append("` ");
-//                            for (int i = samplePoissonCols + 1; i <= bootstrapTrials; i++)
-//                                buf.append(", verdict.poisson() as `__p").append(i).append("` ");
-//                            rewriter.insertAfter(list.stop, buf.toString());
-//                        }
-//                        transformed.addAggregate(itemInfo.aggregateType, itemInfo.expr, itemInfo.index);
-//                    }
-//                }
-//                if (transformed.getSample().stratified)
-//                    rewriter.insertAfter(list.stop, "," + transformed.getSample().getStrataColsStr() + " ");
-//                return null;
-//            }
-//        });
-//        return transformed.isChanged();
-//    }
 
     private void replaceGroupBy(HplsqlParser.Group_by_clauseContext gb) {
         if (gb == null)
