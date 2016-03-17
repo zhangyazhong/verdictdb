@@ -4,8 +4,12 @@ import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.processing.SelectStatement;
 
-public class OnTheFlyTransformer extends QueryTransformer {
-    public OnTheFlyTransformer(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
+import java.util.Random;
+
+public class UdaTransformer extends QueryTransformer {
+    Random rnd = new Random();
+
+    public UdaTransformer(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
         super(conf, metaDataManager, q);
     }
 
@@ -14,11 +18,13 @@ public class OnTheFlyTransformer extends QueryTransformer {
         for (int j = selectItems.size() - 1; j >= 0; j--) {
             SelectListItem item = selectItems.get(j);
             if (item.isSupportedAggregate()) {
+                String uda = getUda(item);
+                String expr = item.getExpression();
                 StringBuilder buf = new StringBuilder(", ");
                 //TODO: also handle without conf_int
                 buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
                 for (int i = 0; i < bootstrapTrials; i++)
-                    buf.append(getTrialExpression(item, i + 1)).append(", ");
+                    buf.append(uda).append("(").append(getRandomSeed()).append(", ").append(expr).append("), ");
                 buf.replace(buf.length() - 2, buf.length(), ")");
                 buf.append(" AS CI_").append(item.getIndex()).append(" ");
                 rewriter.insertAfter(selectList.stop, buf.toString());
@@ -27,17 +33,13 @@ public class OnTheFlyTransformer extends QueryTransformer {
         return true;
     }
 
-    private String getTrialExpression(SelectListItem item, int i) {
-        String pref = metaDataManager.getPossionColumnPrefix();
-        switch (item.getAggregateType()) {
-            case AVG:
-                return "sum((" + item.getExpression() + ") * verdict.poisson())/sum(verdict.poisson())";
-            case SUM:
-                return "sum((" + item.getExpression() + ") * verdict.poisson())";
-            case COUNT:
-                return "sum(verdict.poisson())";
-            default:
-                return null;
-        }
+    private int getRandomSeed() {
+        return rnd.nextInt();
     }
+
+    private String getUda(SelectListItem item) {
+        //TODO: better names
+        return "verdict.my_" + item.getAggregateType().toString().toLowerCase();
+    }
+
 }
