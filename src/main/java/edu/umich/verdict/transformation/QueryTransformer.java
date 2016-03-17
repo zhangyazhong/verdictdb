@@ -3,13 +3,14 @@ package edu.umich.verdict.transformation;
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.models.Sample;
+import edu.umich.verdict.parser.TsqlBaseVisitor;
+import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.SelectStatement;
 import edu.umich.verdict.parser.HplsqlBaseVisitor;
 import edu.umich.verdict.parser.HplsqlParser;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,26 +18,33 @@ import java.util.HashMap;
 import java.util.List;
 
 //TODO: clean and separate 3 methods
-public class QueryTransformer {
-    static final List<String> supportedAggregates = Arrays.asList("avg sum count".split(" "));
-    private final MetaDataManager metaDataManager;
-    private final TokenStreamRewriter rewriter;
-    private SelectStatement q;
-    private TransformedQuery transformed;
-    private final int bootstrapRepeats;
-    private final double confidence;
+public abstract class QueryTransformer {
+    protected static final List<String> supportedAggregates = Arrays.asList("avg sum count".split(" "));
+    protected final MetaDataManager metaDataManager;
+    protected final TokenStreamRewriter rewriter;
+    protected SelectStatement q;
+    protected TransformedQuery transformed;
+    protected final int bootstrapRepeats;
+    protected final double confidence;
+    protected final String sampleType;
     private final boolean useSamples;
     private final double preferredSample;
     //TODO: do we need this?
     private final boolean useConfIntUdf = true;
     private final String method;
-    private final String sampleType;
-    
-    boolean seenSelectList = false, seenSelect = false;
+
+    protected TsqlParser.Select_listContext selectList = null;
     ArrayList<SelectListItem> selectItems = new ArrayList<SelectListItem>();
+    boolean seenSelect = false;
     HplsqlParser.Select_listContext innerSelectList;
     HplsqlParser.Group_by_clauseContext groupBy = null;
     HashMap<String, String> selectExpMap = new HashMap<>();
+
+    public static QueryTransformer forConfig(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
+        if (!conf.getBoolean("bootstrap"))
+            return new IdenticalTransformer(conf, metaDataManager, q);
+        return new UdaTransformer(conf, metaDataManager, q);
+    }
 
     public QueryTransformer(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
         this.q = q;
@@ -51,20 +59,24 @@ public class QueryTransformer {
         transformed = new TransformedQuery(q, bootstrapRepeats, confidence, method);
     }
 
-    private boolean replaceTableNames() {
-        q.getParseTree().accept(new HplsqlBaseVisitor<Void>() {
-            public Void visitTable_name(HplsqlParser.Table_nameContext ctx) {
+    protected boolean replaceTableNames() {
+        q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
+            public Void visitTable_source_item(TsqlParser.Table_source_itemContext ctx) {
                 if (transformed.getSample() != null)
+                    // already replaced a sample
                     return null;
-                HplsqlParser.IdentContext node = ctx.ident();
-                String tableName = ctx.ident().getText();
-                Sample sample = getSample(tableName);
+                if (ctx.table_name_with_hint() == null)
+                    // table_source_item is a sub-query or something else (not a table reference)
+                    return null;
+                TsqlParser.Table_nameContext nameCtx = ctx.table_name_with_hint().table_name();
+                Sample sample = getSample(nameCtx.getText());
                 if (sample != null) {
-                    TerminalNodeImpl lch = (TerminalNodeImpl) node.getChild(0);
-                    rewriter.replace(lch.getSymbol(), sample.name);
+                    if (ctx.as_table_alias() == null)
+                        // if there is no alias, we add an alias equal to the original table name to eliminate side-effects of this change in other parts of the query
+                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.name + " AS " + nameCtx.table.getText());
+                    else
+                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.name);
                     transformed.setSample(sample);
-                    if (method.equals("stored") && sample.poissonColumns < bootstrapRepeats)
-                        System.err.println("WARNING: The best matched sample has just " + sample.poissonColumns + " Poisson columns, which is " + (bootstrapRepeats - sample.poissonColumns) + " less than needed. Using ON-THE-FLY method for the missing columns.");
                 }
                 return null;
             }
@@ -72,47 +84,50 @@ public class QueryTransformer {
         return transformed.getSample() != null;
     }
 
-    private boolean replaceSelectList() {
-        q.getParseTree().accept(new HplsqlBaseVisitor<Void>() {
-            public Void visitSelect_list(HplsqlParser.Select_listContext list) {
-                if (seenSelectList)
-                    return null;
-                seenSelectList = true;
-
-                innerSelectList = list;
-                transformed.setOriginalCols(list.select_list_item().size());
-                int samplePoissonCols = method.equals("stored") ? transformed.getSample().poissonColumns : 0;
-
-                for (HplsqlParser.Select_list_itemContext item : list.select_list_item()) {
-                    SelectListItem itemInfo;
-                    try {
-                        itemInfo = new SelectListItem(selectItems.size() + 1, item);
-                    } catch (Exception e) {
-                        transformed.getAggregates().clear();
-                        return null;
-                    }
-                    selectItems.add(itemInfo);
-                    selectExpMap.put(itemInfo.expr, itemInfo.getInnerAlias());
-                    rewriter.replace(item.start, item.stop, itemInfo.getInnerSql());
-                    if (itemInfo.isSupportedAggr) {
-                        if (!method.equals("uda") && transformed.getAggregates().isEmpty()) {
-                            StringBuilder buf = new StringBuilder();
-                            for (int i = 1; i <= samplePoissonCols && i <= bootstrapRepeats; i++)
-                                buf.append(", `__p").append(i).append("` ");
-                            for (int i = samplePoissonCols + 1; i <= bootstrapRepeats; i++)
-                                buf.append(", verdict.poisson() as `__p").append(i).append("` ");
-                            rewriter.insertAfter(list.stop, buf.toString());
-                        }
-                        transformed.addAggregate(itemInfo.aggregateType, itemInfo.expr, itemInfo.index);
-                    }
-                }
-                if (transformed.getSample().stratified)
-                    rewriter.insertAfter(list.stop, "," + transformed.getSample().getStrataColsStr() + " ");
-                return null;
-            }
-        });
-        return transformed.isChanged();
-    }
+    protected abstract boolean addBootstrapTrials();
+//    {
+//        if (selectList == null)
+//            return false;
+//        q.getParseTree().accept(new HplsqlBaseVisitor<Void>() {
+//            public Void visitSelect_list(HplsqlParser.Select_listContext list) {
+//                if (seenSelectList)
+//                    return null;
+//                seenSelectList = true;
+//
+//                innerSelectList = list;
+//                transformed.setOriginalCols(list.select_list_item().size());
+//                int samplePoissonCols = method.equals("stored") ? transformed.getSample().poissonColumns : 0;
+//
+//                for (HplsqlParser.Select_list_itemContext item : list.select_list_item()) {
+//                    SelectListItem itemInfo;
+//                    try {
+//                        itemInfo = new SelectListItem(selectItems.size() + 1, item);
+//                    } catch (Exception e) {
+//                        transformed.getAggregates().clear();
+//                        return null;
+//                    }
+//                    selectItems.add(itemInfo);
+//                    selectExpMap.put(itemInfo.expr, itemInfo.getInnerAlias());
+//                    rewriter.replace(item.start, item.stop, itemInfo.getInnerSql());
+//                    if (itemInfo.isSupportedAggr) {
+//                        if (!method.equals("uda") && transformed.getAggregates().isEmpty()) {
+//                            StringBuilder buf = new StringBuilder();
+//                            for (int i = 1; i <= samplePoissonCols && i <= bootstrapRepeats; i++)
+//                                buf.append(", `__p").append(i).append("` ");
+//                            for (int i = samplePoissonCols + 1; i <= bootstrapRepeats; i++)
+//                                buf.append(", verdict.poisson() as `__p").append(i).append("` ");
+//                            rewriter.insertAfter(list.stop, buf.toString());
+//                        }
+//                        transformed.addAggregate(itemInfo.aggregateType, itemInfo.expr, itemInfo.index);
+//                    }
+//                }
+//                if (transformed.getSample().stratified)
+//                    rewriter.insertAfter(list.stop, "," + transformed.getSample().getStrataColsStr() + " ");
+//                return null;
+//            }
+//        });
+//        return transformed.isChanged();
+//    }
 
     private void replaceGroupBy(HplsqlParser.Group_by_clauseContext gb) {
         if (gb == null)
@@ -204,43 +219,127 @@ public class QueryTransformer {
     }
 
     public TransformedQuery transform() {
-        boolean changed = useSamples && replaceTableNames() && replaceSelectList() && addSelectWrapper();
+        boolean changed = replaceTableNames() && findSelectList() && findAggregates() && scaleAggregates() && addBootstrapTrials();// && addSelectWrapper();
         return transformed;
     }
 
-    class SelectListItem {
+    protected boolean findSelectList() {
+        //TODO: find the first WITH aggregate
+        q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
+            public Void visitSelect_list(TsqlParser.Select_listContext list) {
+                if (selectList != null)
+                    // already found
+                    return null;
+                selectList = list;
+                return null;
+            }
+        });
+        if (selectList == null)
+            return false;
+        transformed.setOriginalCols(selectList.select_list_elem().size());
+        return true;
+    }
 
+    protected boolean findAggregates() {
+        if (selectList == null)
+            return false;
+        for (TsqlParser.Select_list_elemContext item : selectList.select_list_elem()) {
+            SelectListItem itemInfo;
+            try {
+                itemInfo = new SelectListItem(selectItems.size() + 1, item);
+            } catch (Exception e) {
+                transformed.getAggregates().clear();
+                break;
+            }
+            selectItems.add(itemInfo);
+            if (itemInfo.isSupportedAggr)
+                transformed.addAggregate(itemInfo.aggregateType, itemInfo.expr, itemInfo.index);
+        }
+        return transformed.isChanged();
+    }
+
+    protected boolean scaleAggregates() {
+        for (SelectListItem item : selectItems)
+            if (item.isSupportedAggr)
+                item.scale(rewriter);
+        return true;
+    }
+
+    class SelectListItem {
         int index;
         String expr;
         String aggr;
         TransformedQuery.AggregateType aggregateType = TransformedQuery.AggregateType.NONE;
-        String alias;
+        String alias = "";
         boolean isSupportedAggr = false;
+        TsqlParser.Select_list_elemContext ctx;
 
         SelectListItem(int index, String expr) {
             this.index = index;
             this.expr = expr;
         }
 
-        public SelectListItem(int index, HplsqlParser.Select_list_itemContext item) throws Exception {
-            if (item.select_list_asterisk() != null)
-                throw new Exception("Not Supported");
+        public SelectListItem(int index, TsqlParser.Select_list_elemContext ctx) throws Exception {
+            this.ctx = ctx;
+            if (ctx.expression() == null)
+                // probably item is *
+                //TODO: better exception
+                throw new Exception("In appropriate expression.");
             this.index = index;
-            this.expr = item.expr().getText();
-            if (item.select_list_alias() != null && item.select_list_alias().ident() != null)
-                alias = item.select_list_alias().ident().getText();
-            else
-                alias = expr;
-            if (item.expr().expr_agg_window_func() != null) {
-                expr = item.expr().expr_agg_window_func().getChild(2).getText();
-                aggr = item.expr().expr_agg_window_func().getChild(0).getText();
-                if (expr.equals("*"))
-                    expr = "1";
-                if (supportedAggregates.contains(aggr.toLowerCase())) {
-                    isSupportedAggr = true;
-                    aggregateType = TransformedQuery.AggregateType.valueOf(aggr.toUpperCase());
-                } else
-                    aggregateType = TransformedQuery.AggregateType.OTHER;
+            this.expr = ctx.expression().getText();
+            if (ctx.column_alias() != null)
+                alias = ctx.column_alias().getText();
+            TsqlParser.ExpressionContext exprCtx = ctx.expression();
+            if (exprCtx instanceof TsqlParser.Function_call_expressionContext) {
+                // it's a function call
+                TsqlParser.Aggregate_windowed_functionContext aggCtx = ((TsqlParser.Function_call_expressionContext) exprCtx).function_call().aggregate_windowed_function();
+                if (aggCtx != null) {
+                    // its aggregate function
+                    if (aggCtx.over_clause() != null)
+                        //TODO: can we support over clause?
+                        return;
+                    if (aggCtx.all_distinct_expression() == null) {
+                        // count(*)
+                        expr = "1";
+                    } else {
+                        if (aggCtx.all_distinct_expression().DISTINCT() != null)
+                            // TODO: can we support distinct?
+                            return;
+                        //TODO: preserve spaces in expression (important for case clauses)
+                        expr = aggCtx.all_distinct_expression().expression().getText();
+                    }
+                    aggr = aggCtx.getChild(0).getText();
+                    if (supportedAggregates.contains(aggr.toLowerCase())) {
+                        isSupportedAggr = true;
+                        aggregateType = TransformedQuery.AggregateType.valueOf(aggr.toUpperCase());
+                    } else
+                        aggregateType = TransformedQuery.AggregateType.OTHER;
+                }
+            }
+        }
+
+        public void scale(TokenStreamRewriter rewriter) {
+            double scale = getScale();
+            if (scale == 1)
+                return;
+            //TODO: support general expressions
+            if (alias.isEmpty()) {
+                String expr = ctx.getText();
+                rewriter.replace(ctx.start, ctx.stop, scale + "*" + expr + " AS " + metaDataManager.getAliasCharacter() + expr + metaDataManager.getAliasCharacter());
+            } else
+                rewriter.insertBefore(ctx.expression().start, scale + "*");
+
+        }
+
+        protected double getScale() {
+            if (transformed.getSample().stratified)
+                return 1;
+            switch (aggregateType) {
+                case SUM:
+                case COUNT:
+                    return 1 / transformed.getSample().compRatio;
+                default:
+                    return 1;
             }
         }
 
@@ -305,19 +404,6 @@ public class QueryTransformer {
             return buf.toString();
         }
 
-        private String getScale() {
-            switch (aggregateType) {
-                case AVG:
-                    return "";
-                case SUM:
-                    return transformed.getSample().stratified ? "" : 1 / transformed.getSample().compRatio + "*";
-                case COUNT:
-                    return transformed.getSample().stratified ? "" : 1 / transformed.getSample().compRatio + "*";
-                default:
-                    return "";
-            }
-        }
-
         private String getStratifiedScale() {
             switch (aggregateType) {
                 case AVG:
@@ -372,7 +458,7 @@ public class QueryTransformer {
         }
 
         public String getStratifiedInnerSql() {
-            return getStratifiedScale() + "`"+getOuterAlias() + "` as `" + getStratifiedOuterAlias() + "`";
+            return getStratifiedScale() + "`" + getOuterAlias() + "` as `" + getStratifiedOuterAlias() + "`";
         }
 
         public String getStratifiedInnerPoissonList() {
@@ -385,7 +471,7 @@ public class QueryTransformer {
         }
     }
 
-    private Sample getSample(String tableName) {
+    protected Sample getSample(String tableName) {
         double min = 1000;
         Sample best = null;
         for (Sample s : metaDataManager.getTableSamples(tableName)) {
@@ -407,4 +493,6 @@ public class QueryTransformer {
         else
             return second.poissonColumns > first.poissonColumns;
     }
+
+
 }

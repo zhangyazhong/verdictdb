@@ -18,7 +18,7 @@ public class SelectStatement extends ParsedStatement {
     @Override
     public ResultSet run(Configuration conf, DbConnector connector) throws SQLException {
         ResultSet rs;
-        TransformedQuery transformed = new QueryTransformer(conf, connector.getMetaDataManager(), this).transform();
+        TransformedQuery transformed = QueryTransformer.forConfig(conf, connector.getMetaDataManager(), this).transform();
         String q = transformed.toString();
         if (transformed.isChanged()) {
             info("New ParsedStatement:");

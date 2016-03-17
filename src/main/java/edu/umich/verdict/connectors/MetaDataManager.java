@@ -178,4 +178,8 @@ public class MetaDataManager {
     public int getSamplesCount() {
         return samples.size();
     }
+
+    public char getAliasCharacter() {
+        return '\'';
+    }
 }

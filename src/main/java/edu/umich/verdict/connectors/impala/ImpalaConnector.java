@@ -42,8 +42,8 @@ public class ImpalaConnector extends DbConnector {
     }
 
     @Override
-    protected void connect(String user, String password) throws SQLException, ClassNotFoundException {
-        super.connect(user, password);
+    protected void connect(String connectionString, String user, String password) throws SQLException, ClassNotFoundException {
+        super.connect(connectionString, user, password);
     }
 
     @Override

@@ -21,15 +21,13 @@ public abstract class DbConnector {
         }
     }
 
-    protected String connectionStr;
     protected Connection connection;
     private MetaDataManager metaDataManager = null;
 
     protected DbConnector(Configuration conf) throws SQLException,
             ClassNotFoundException {
         String name = this.getDbmsName().toLowerCase();
-        this.connectionStr = getConnectionString(conf.get(name + ".host"), conf.get(name + ".port"));
-        connect(conf.get(name + ".user"), conf.get(name + ".password"));
+        connect(getConnectionString(conf.get(name + ".host"), conf.get(name + ".port")), conf.get(name + ".user"), conf.get(name + ".password"));
         this.metaDataManager = createMetaDataManager();
     }
 
@@ -47,11 +45,11 @@ public abstract class DbConnector {
         return "jdbc:" + getProtocolName() + "://" + host + ":" + port;
     }
 
-    protected void connect(String user, String password) throws SQLException, ClassNotFoundException {
+    protected void connect(String connectionString, String user, String password) throws SQLException, ClassNotFoundException {
         if (connection != null && !connection.isClosed())
             return;
         Class.forName(getDriverClassPath());
-        connection = DriverManager.getConnection(connectionStr, user, password);
+        connection = DriverManager.getConnection(connectionString, user, password);
     }
 
     public Connection getConnection() {

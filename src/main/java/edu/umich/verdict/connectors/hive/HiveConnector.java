@@ -35,8 +35,8 @@ public class HiveConnector extends DbConnector {
     }
 
     @Override
-    protected void connect(String user, String password) throws SQLException, ClassNotFoundException {
-        super.connect(user, password);
+    protected void connect(String connectionString, String user, String password) throws SQLException, ClassNotFoundException {
+        super.connect(connectionString, user, password);
 
         String initStatements = "delete jar if exists " + udfJar + ";" +
                 "add jar " + udfJar + ";\n" +

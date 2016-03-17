@@ -130,7 +130,7 @@ public class Cli {
     }
 
     private String getNewQuery() {
-        final String PROMPT = "verdict> ";
+        String PROMPT = "verdict> ";
         String q = "", l = "";
         History h = reader.getHistory();
         int hSize = h.size();

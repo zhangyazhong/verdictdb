@@ -3,6 +3,7 @@ package edu.umich.verdict.cli;
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.processing.ParsedStatement;
+import edu.umich.verdict.transformation.Parser;
 
 import java.io.PrintWriter;
 import java.sql.ResultSet;
@@ -17,7 +18,7 @@ public class RunningResults {
 
     public RunningResults(String str) {
         try {
-            this.q = ParsedStatement.fromString(str);
+            this.q = Parser.parse(str);
         } catch (Exception e) {
             this.ex = e;
             this.failed = true;
