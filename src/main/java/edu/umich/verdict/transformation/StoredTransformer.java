@@ -14,7 +14,7 @@ public class StoredTransformer extends QueryTransformer {
     protected boolean addBootstrapTrials() {
         for (int j = selectItems.size() - 1; j >= 0; j--) {
             SelectListItem item = selectItems.get(j);
-            if (item.isSupportedAggr) {
+            if (item.isSupportedAggregate()) {
                 StringBuilder buf = new StringBuilder(", ");
                 //TODO: also handle without conf_int
                 buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
@@ -26,7 +26,7 @@ public class StoredTransformer extends QueryTransformer {
                 for (int i = 0; i < trials; i++)
                     buf.append(getTrialExpression(item, i + 1)).append(", ");
                 buf.replace(buf.length() - 2, buf.length(), ")");
-                buf.append(" AS CI_").append(item.index).append(" ");
+                buf.append(" AS CI_").append(item.getIndex()).append(" ");
                 rewriter.insertAfter(selectList.stop, buf.toString());
             }
         }
@@ -35,11 +35,11 @@ public class StoredTransformer extends QueryTransformer {
 
     private String getTrialExpression(SelectListItem item, int i) {
         String pref = metaDataManager.getPossionColumnPrefix();
-        switch (item.aggregateType) {
+        switch (item.getAggregateType()) {
             case AVG:
-                return "sum((" + item.expr + ") * " + pref + i + ")/sum(" + pref + i + ")";
+                return "sum((" + item.getExpression() + ") * " + pref + i + ")/sum(" + pref + i + ")";
             case SUM:
-                return "sum((" + item.expr + ") * " + pref + i + ")";
+                return "sum((" + item.getExpression() + ") * " + pref + i + ")";
             case COUNT:
                 return "sum(" + pref + i + ")";
             default:

@@ -6,15 +6,10 @@ import edu.umich.verdict.models.Sample;
 import edu.umich.verdict.parser.TsqlBaseVisitor;
 import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.SelectStatement;
-import edu.umich.verdict.parser.HplsqlBaseVisitor;
-import edu.umich.verdict.parser.HplsqlParser;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStreamRewriter;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 //TODO: clean and separate 3 methods
@@ -30,14 +25,9 @@ public abstract class QueryTransformer {
     private final double preferredSample;
     //TODO: do we need this?
     private final boolean useConfIntUdf = true;
-    private final String method;
 
     protected TsqlParser.Select_listContext selectList = null;
-    ArrayList<SelectListItem> selectItems = new ArrayList<SelectListItem>();
-    boolean seenSelect = false;
-    HplsqlParser.Select_listContext innerSelectList;
-    HplsqlParser.Group_by_clauseContext groupBy = null;
-    HashMap<String, String> selectExpMap = new HashMap<>();
+    ArrayList<SelectListItem> selectItems = new ArrayList<>();
 
     public static QueryTransformer forConfig(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
         if (!conf.getBoolean("bootstrap"))
@@ -61,14 +51,14 @@ public abstract class QueryTransformer {
         confidence = conf.getPercent("bootstrap.confidence");
         bootstrapTrials = conf.getInt("bootstrap.trials");
         preferredSample = conf.getPercent("bootstrap.sample-size");
-        method = conf.get("bootstrap.method").toLowerCase();
         sampleType = conf.get("bootstrap.sample-type").toLowerCase();
-        transformed = new TransformedQuery(q, bootstrapTrials, confidence, method);
+        transformed = new TransformedQuery(q, bootstrapTrials, confidence, conf.get("bootstrap.method").toLowerCase());
     }
 
     protected boolean replaceTableNames() {
         q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
             public Void visitTable_source_item(TsqlParser.Table_source_itemContext ctx) {
+                //TODO: select the biggest table
                 if (transformed.getSample() != null)
                     // already replaced a sample
                     return null;
@@ -93,96 +83,8 @@ public abstract class QueryTransformer {
 
     protected abstract boolean addBootstrapTrials();
 
-    private void replaceGroupBy(HplsqlParser.Group_by_clauseContext gb) {
-        if (gb == null)
-            return;
-        if (transformed.getSample().stratified) {
-            System.err.println("Sorry, we do not support GROUP BY on stratified samples yet.");
-            transformed.getAggregates().clear();
-            return;
-        }
-        for (HplsqlParser.ExprContext exp : gb.expr()) {
-            replaceExpWithAlias(exp);
-        }
-    }
-
-    private void replaceExpWithAlias(HplsqlParser.ExprContext exp) {
-        String s = exp.getText();
-        String alias = selectExpMap.containsKey(s) ? selectExpMap.get(s) : null;
-        if (alias == null) {
-            SelectListItem item = new SelectListItem(selectItems.size() + 1, s);
-            selectItems.add(item);
-            rewriter.insertAfter(innerSelectList.stop, "," + item.getInnerSql() + " ");
-            alias = item.getInnerAlias();
-            selectExpMap.put(s, alias);
-        }
-        rewriter.replace(exp.start, exp.stop, alias);
-    }
-
-    private boolean addSelectWrapper() {
-        q.getParseTree().accept(new HplsqlBaseVisitor<Void>() {
-            public Void visitSubselect_stmt(HplsqlParser.Subselect_stmtContext select) {
-                if (seenSelect)
-                    return null;
-                seenSelect = true;
-
-                Sample sample = transformed.getSample();
-                StringBuilder buf = new StringBuilder();
-                if (sample.stratified) {
-                    buf.append(" select ");
-                    for (SelectListItem item : selectItems)
-                        buf.append(item.getStratifiedOuterSql()).append(",");
-                    for (SelectListItem item : selectItems)
-                        if (item.isSupportedAggr)
-                            buf.append(item.getStratifiedPoissonList());
-                    buf.delete(buf.length() - 1, buf.length());
-                    buf.append(" from ( select ");
-                    for (SelectListItem item : selectItems)
-                        buf.append(item.getStratifiedInnerSql()).append(",");
-                    for (SelectListItem item : selectItems)
-                        if (item.isSupportedAggr)
-                            buf.append(item.getStratifiedInnerPoissonList());
-                    buf.append("stratified_res.").append(sample.getStrataColsStr().replaceAll(",", ",stratified_res."));
-                    buf.append(" from ( ");
-
-                }
-                buf.append(" select ");
-                for (SelectListItem item : selectItems)
-                    buf.append(item.getOuterSql()).append(",");
-                for (SelectListItem item : selectItems)
-                    if (item.isSupportedAggr)
-                        buf.append(item.getPoissonList());
-                if (sample.stratified)
-                    buf.append(sample.getStrataColsStr()).append(",");
-                buf.delete(buf.length() - 1, buf.length());
-                buf.append(" from (");
-                rewriter.insertBefore(select.start, buf.toString());
-                Object afterWhere = null;
-                for (ParseTree pt : select.children)
-                    if (pt instanceof HplsqlParser.Where_clauseContext)
-                        afterWhere = pt;
-                if (afterWhere == null) {
-                    for (ParseTree pt : select.children)
-                        if (pt instanceof HplsqlParser.From_clauseContext)
-                            afterWhere = ((HplsqlParser.From_clauseContext) pt).stop;
-                } else
-                    afterWhere = ((HplsqlParser.Where_clauseContext) afterWhere).stop;
-                buf = new StringBuilder();
-                if (sample.stratified) {
-                    buf.append(") v__select group by ").append(sample.getStrataColsStr())
-                            .append(") as stratified_res join ").append(sample.getWeightsTable()).append(" as v__weights ").append(" on ")
-                            .append(sample.getJoinCond("stratified_res", "v__weights"));
-                }
-                buf.append(") v__innerQ ");
-                rewriter.insertAfter((Token) afterWhere, buf.toString());
-                replaceGroupBy(select.group_by_clause());
-                return null;
-            }
-        });
-        return transformed.isChanged();
-    }
-
     public TransformedQuery transform() {
+        //TODO: make methods throw appropriate exceptions instead of returning false
         boolean changed = replaceTableNames() && findSelectList() && findAggregates() && scaleAggregates() && addBootstrapTrials();// && addSelectWrapper();
         return transformed;
     }
@@ -216,15 +118,15 @@ public abstract class QueryTransformer {
                 break;
             }
             selectItems.add(itemInfo);
-            if (itemInfo.isSupportedAggr)
-                transformed.addAggregate(itemInfo.aggregateType, itemInfo.expr, itemInfo.index);
+            if (itemInfo.isSupportedAggregate())
+                transformed.addAggregate(itemInfo.getAggregateType(), itemInfo.getExpression(), itemInfo.getIndex());
         }
         return transformed.isChanged();
     }
 
     protected boolean scaleAggregates() {
         for (SelectListItem item : selectItems)
-            if (item.isSupportedAggr)
+            if (item.isSupportedAggregate())
                 item.scale(rewriter);
         return true;
     }
@@ -249,19 +151,14 @@ public abstract class QueryTransformer {
         return second.poissonColumns > first.poissonColumns ? first : second;
     }
 
-    class SelectListItem {
-        int index;
-        String expr;
-        String aggr;
-        TransformedQuery.AggregateType aggregateType = TransformedQuery.AggregateType.NONE;
-        String alias = "";
-        boolean isSupportedAggr = false;
-        TsqlParser.Select_list_elemContext ctx;
-
-        SelectListItem(int index, String expr) {
-            this.index = index;
-            this.expr = expr;
-        }
+    protected class SelectListItem {
+        private int index;
+        private String expr;
+        private String aggr;
+        private TransformedQuery.AggregateType aggregateType = TransformedQuery.AggregateType.NONE;
+        private String alias = "";
+        private boolean isSupportedAggregate = false;
+        private TsqlParser.Select_list_elemContext ctx;
 
         public SelectListItem(int index, TsqlParser.Select_list_elemContext ctx) throws Exception {
             this.ctx = ctx;
@@ -294,7 +191,7 @@ public abstract class QueryTransformer {
                     }
                     aggr = aggCtx.getChild(0).getText();
                     if (supportedAggregates.contains(aggr.toLowerCase())) {
-                        isSupportedAggr = true;
+                        isSupportedAggregate = true;
                         aggregateType = TransformedQuery.AggregateType.valueOf(aggr.toUpperCase());
                     } else
                         aggregateType = TransformedQuery.AggregateType.OTHER;
@@ -307,7 +204,7 @@ public abstract class QueryTransformer {
             if (scale == 1)
                 return;
             //TODO: support general expressions
-            if (alias.isEmpty()) {
+            if (getAlias().isEmpty()) {
                 String expr = ctx.getText();
                 rewriter.replace(ctx.start, ctx.stop, scale + "*" + expr + " AS " + metaDataManager.getAliasCharacter() + expr + metaDataManager.getAliasCharacter());
             } else
@@ -318,7 +215,7 @@ public abstract class QueryTransformer {
         protected double getScale() {
             if (transformed.getSample().stratified)
                 return 1;
-            switch (aggregateType) {
+            switch (getAggregateType()) {
                 case SUM:
                 case COUNT:
                     return 1 / transformed.getSample().compRatio;
@@ -327,131 +224,24 @@ public abstract class QueryTransformer {
             }
         }
 
-        public String getInnerAlias() {
-            return "`__c" + index + "`";
-        }
-
-        public String getInnerSql() {
-            return "(" + expr + ") as " + getInnerAlias();
-        }
-
         public String getAlias() {
-            if (alias == null) {
-                if (aggregateType == TransformedQuery.AggregateType.NONE)
-                    return this.expr;
-                else
-
-                    return aggr + "(" + this.expr + ")";
-            } else
-                return this.alias;
+            return this.alias;
         }
 
-        public String getOuterAlias() {
-            if (transformed.getSample().stratified)
-                return "__a" + index;
-            return getAlias();
+        public int getIndex() {
+            return index;
         }
 
-        public String getStratifiedOuterAlias() {
-            if (transformed.getSample().stratified)
-                return "__b" + index;
-            return getAlias();
+        public String getExpression() {
+            return expr;
         }
 
-        public String getOuterSql() {
-            String expr = getInnerAlias();
-            if (aggregateType == TransformedQuery.AggregateType.NONE)
-                return "(" + expr + ") as `" + this.getOuterAlias() + "`";
-            else
-                return getScale() + aggr + "(" + expr + ") as `" + this.getOuterAlias() + "`";
+        public TransformedQuery.AggregateType getAggregateType() {
+            return aggregateType;
         }
 
-        public String getStratifiedOuterSql() {
-            String expr = getStratifiedOuterAlias();
-            if (aggregateType == TransformedQuery.AggregateType.NONE)
-                return "(`" + expr + "`) as `" + this.getAlias() + "`";
-            else
-                return "sum(`" + expr + "`) as `" + this.getAlias() + "`";
-        }
-
-        public String getStratifiedPoissonList() {
-            if (!isSupportedAggr)
-                return "";
-            StringBuilder buf = new StringBuilder();
-            for (int i = 1; i <= bootstrapTrials; i++)
-                buf.append("sum(`").append(getStratifiedOuterAlias()).append("_").append(i).append("`),");
-            if (useConfIntUdf) {
-                buf.insert(0, "verdict.conf_int(" + confidence + ", ");
-                buf.delete(buf.length() - 1, buf.length());
-                buf.append(") as `").append(getAlias()).append(" Conf. Int.`,");
-            }
-            return buf.toString();
-        }
-
-        private String getStratifiedScale() {
-            switch (aggregateType) {
-                case AVG:
-                    return "v__weights.weight*";
-                case SUM:
-                case COUNT:
-                    return "v__weights.ratio*";
-                default:
-                    return "";
-            }
-        }
-
-        public String getPoissonList() {
-            if (!isSupportedAggr)
-                return "";
-            StringBuilder buf = new StringBuilder();
-            for (int i = 1; i <= bootstrapTrials; i++) {
-                if (method.equals("uda"))
-                    switch (aggregateType) {
-                        case AVG:
-                            buf.append(getScale()).append("cast(verdict.my_avg(").append(i).append(",").append(getInnerAlias()).append(") as double)");
-                            break;
-                        case SUM:
-                            buf.append(getScale()).append("verdict.my_sum(").append(i).append(",").append(getInnerAlias()).append(")");
-                            break;
-                        case COUNT:
-                            buf.append(getScale()).append("verdict.my_count(").append(i).append(")");
-                            break;
-                    }
-                else
-                    switch (aggregateType) {
-                        case AVG:
-                            buf.append(getScale()).append("sum(").append(getInnerAlias()).append("*").append("`__p").append(i).append("`)/count(1)");
-                            break;
-                        case SUM:
-                            buf.append(getScale()).append("sum(").append(getInnerAlias()).append("*").append("`__p").append(i).append("`)");
-                            break;
-                        case COUNT:
-                            buf.append(getScale()).append("sum(").append("`__p").append(i).append("`)");
-                            break;
-                    }
-                if (!useConfIntUdf || transformed.getSample().stratified)
-                    buf.append(" as `__a").append(index).append("_").append(i).append("`");
-                buf.append(",");
-            }
-            if (useConfIntUdf && !transformed.getSample().stratified) {
-                buf.insert(0, "verdict.conf_int(" + confidence + ", ");
-                buf.delete(buf.length() - 1, buf.length());
-                buf.append(") as `").append(getAlias()).append(" Conf. Int.`,");
-            }
-            return buf.toString();
-        }
-
-        public String getStratifiedInnerSql() {
-            return getStratifiedScale() + "`" + getOuterAlias() + "` as `" + getStratifiedOuterAlias() + "`";
-        }
-
-        public String getStratifiedInnerPoissonList() {
-            if (!isSupportedAggr)
-                return "";
-            StringBuilder buf = new StringBuilder();
-            for (int i = 1; i <= bootstrapTrials; i++)
-                buf.append(getStratifiedScale()).append("`").append(getOuterAlias()).append("_").append(i).append("` as `").append(getStratifiedOuterAlias()).append("_").append(i).append("`,");
-            return buf.toString();
+        public boolean isSupportedAggregate() {
+            return isSupportedAggregate;
         }
     }
 }

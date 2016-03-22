@@ -17,16 +17,16 @@ public class UdaTransformer extends QueryTransformer {
     protected boolean addBootstrapTrials() {
         for (int j = selectItems.size() - 1; j >= 0; j--) {
             SelectListItem item = selectItems.get(j);
-            if (item.isSupportedAggr) {
+            if (item.isSupportedAggregate()) {
                 String uda = getUda(item);
-                String expr = item.expr;
+                String expr = item.getExpression();
                 StringBuilder buf = new StringBuilder(", ");
                 //TODO: also handle without conf_int
                 buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
                 for (int i = 0; i < bootstrapTrials; i++)
                     buf.append(uda).append("(").append(getRandomSeed()).append(", ").append(expr).append("), ");
                 buf.replace(buf.length() - 2, buf.length(), ")");
-                buf.append(" AS CI_").append(item.index).append(" ");
+                buf.append(" AS CI_").append(item.getIndex()).append(" ");
                 rewriter.insertAfter(selectList.stop, buf.toString());
             }
         }
@@ -39,7 +39,7 @@ public class UdaTransformer extends QueryTransformer {
 
     private String getUda(SelectListItem item) {
         //TODO: better names
-        return "verdict.my_" + item.aggregateType.toString().toLowerCase();
+        return "verdict.my_" + item.getAggregateType().toString().toLowerCase();
     }
 
 }

@@ -141,7 +141,7 @@ public class MetaDataManager {
         return rs.getLong(1);
     }
 
-    public ResultSet getSamplesInfo() throws SQLException {
+    public ResultSet getSamplesInfo(String type, String table) throws SQLException {
         return executeQuery("select name, table_name as `original table name`, round(comp_ratio*100,3) as `size (%)`, row_count as `rows`, cast(poisson_cols as string) as `poission columns`, cast(stratified as string) as `stratified`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample order by name");
     }
 

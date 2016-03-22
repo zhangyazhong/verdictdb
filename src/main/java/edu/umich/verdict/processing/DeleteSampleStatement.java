@@ -2,8 +2,7 @@ package edu.umich.verdict.processing;
 
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.DbConnector;
-import edu.umich.verdict.transformation.QueryTransformer;
-import edu.umich.verdict.parser.HplsqlParser;
+import edu.umich.verdict.parser.TsqlParser;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -15,7 +14,7 @@ public class DeleteSampleStatement extends ParsedStatement {
 
     public DeleteSampleStatement(String str, ParseTree tree, TokenStreamRewriter rewriter) {
         super(str, tree, rewriter);
-        this.sample = ((HplsqlParser.Delete_sample_stmtContext) tree.getChild(0).getChild(0))
+        this.sample = ((TsqlParser.Delete_sample_statementContext) tree)
                 .table_name().getText();
     }
 

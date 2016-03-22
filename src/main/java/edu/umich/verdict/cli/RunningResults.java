@@ -43,18 +43,15 @@ public class RunningResults {
             if (ex instanceof SQLException) {
                 System.err.print("Error: ");
                 System.err.println(ex.getMessage());
-            }
-            else
+            } else
                 ex.printStackTrace();
             return;
         }
 
-        //TODO: don't always print it. use logger
-        out.println("(" + latency + " ms)");
-        out.println();
-
         if (rs != null) {
             try {
+                out.println("(" + latency + " ms)");
+                out.println();
                 ResultWriter.writeResultSet(out, rs);
             } catch (SQLException e) {
                 System.err.println(e.getMessage());

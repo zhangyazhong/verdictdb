@@ -27,6 +27,43 @@ THE SOFTWARE.
 
 grammar Tsql;
 
+// VERDICT
+
+verdict_statement
+    : create_sample_statement
+    | delete_sample_statement
+    | show_samples_statement
+    | config_statement
+    ;
+
+create_sample_statement
+    : T_CREATE T_SAMPLE sample=table_name T_FROM table=table_name T_SIZE size=FLOAT '%' (T_STORE poission_cols=DECIMAL T_POISSON T_COLUMNS)? (T_STRATIFIED T_BY column_name (',' column_name)*)?
+    ;
+
+delete_sample_statement
+    : T_DELETE T_SAMPLE sample=table_name
+    ;
+
+show_samples_statement
+    : T_SHOW type=(T_STRATIFIED | T_UNIFORM | T_ALL)? T_SAMPLES (T_FOR table=table_name)?
+    ;
+
+config_statement
+    : config_set_statement
+    | config_get_statement
+    ;
+
+config_set_statement: T_SET key=config_key '=' value=(ID | STRING | DOUBLE_QUOTE_ID | DECIMAL | FLOAT) percent='%'?;
+
+config_get_statement: T_GET key=config_key;
+
+config_key: ID('.' ID)*;
+
+T_SET: S E T;
+T_GET: G E T;
+
+// VERDICT
+
 tsql_file
     : sql_clause* EOF
     ;
