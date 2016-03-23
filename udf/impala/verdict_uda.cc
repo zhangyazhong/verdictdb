@@ -166,7 +166,6 @@ void AvgMerge(FunctionContext* context, const StringVal& src, StringVal* dst) {
   dst_avg->count += src_avg->count;
 }
 
-//TODO: output double for AVG
 // A serialize function is necessary to free the intermediate state allocation. We use the
 // StringVal constructor to allocate memory owned by Impala, copy the intermediate state,
 // and free the original allocation. Note that memory allocated by the StringVal ctor is

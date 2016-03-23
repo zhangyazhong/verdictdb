@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-//TODO: clean and separate 3 methods
 public abstract class QueryTransformer {
     protected static final List<String> supportedAggregates = Arrays.asList("avg sum count".split(" "));
     protected final MetaDataManager metaDataManager;
@@ -58,7 +57,6 @@ public abstract class QueryTransformer {
     protected boolean replaceTableNames() {
         q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
             public Void visitTable_source_item(TsqlParser.Table_source_itemContext ctx) {
-                //TODO: select the biggest table
                 if (transformed.getSample() != null)
                     // already replaced a sample
                     return null;
@@ -90,7 +88,6 @@ public abstract class QueryTransformer {
     }
 
     protected boolean findSelectList() {
-        //TODO: find the first WITH aggregate
         q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
             public Void visitSelect_list(TsqlParser.Select_listContext list) {
                 if (selectList != null)
@@ -177,16 +174,13 @@ public abstract class QueryTransformer {
                 if (aggCtx != null) {
                     // its aggregate function
                     if (aggCtx.over_clause() != null)
-                        //TODO: can we support over clause?
                         return;
                     if (aggCtx.all_distinct_expression() == null) {
                         // count(*)
                         expr = "1";
                     } else {
                         if (aggCtx.all_distinct_expression().DISTINCT() != null)
-                            // TODO: can we support distinct?
                             return;
-                        //TODO: preserve spaces in expression (important for case clauses)
                         expr = aggCtx.all_distinct_expression().expression().getText();
                     }
                     aggr = aggCtx.getChild(0).getText();
@@ -203,7 +197,6 @@ public abstract class QueryTransformer {
             double scale = getScale();
             if (scale == 1)
                 return;
-            //TODO: support general expressions
             if (getAlias().isEmpty()) {
                 String expr = ctx.getText();
                 rewriter.replace(ctx.start, ctx.stop, scale + "*" + expr + " AS " + metaDataManager.getAliasCharacter() + expr + metaDataManager.getAliasCharacter());

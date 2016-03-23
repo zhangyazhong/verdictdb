@@ -1,5 +1,10 @@
 import AssemblyKeys._
 
+//ScalaTest
+resolvers += "Artima Maven Repository" at "http://repo.artima.com/releases"
+libraryDependencies += "org.scalactic" %% "scalactic" % "2.2.6"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
+
 libraryDependencies += "jline" % "jline" % "2.12.1"
 libraryDependencies += "commons-cli" % "commons-cli" % "1.3.1"
 

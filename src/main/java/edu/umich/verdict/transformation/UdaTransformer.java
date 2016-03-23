@@ -21,7 +21,6 @@ public class UdaTransformer extends QueryTransformer {
                 String uda = getUda(item);
                 String expr = item.getExpression();
                 StringBuilder buf = new StringBuilder(", ");
-                //TODO: also handle without conf_int
                 buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
                 for (int i = 0; i < bootstrapTrials; i++)
                     buf.append(uda).append("(").append(getRandomSeed()).append(", ").append(expr).append("), ");

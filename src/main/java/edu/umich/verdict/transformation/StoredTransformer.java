@@ -16,7 +16,6 @@ public class StoredTransformer extends QueryTransformer {
             SelectListItem item = selectItems.get(j);
             if (item.isSupportedAggregate()) {
                 StringBuilder buf = new StringBuilder(", ");
-                //TODO: also handle without conf_int
                 buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
                 int trials = bootstrapTrials;
                 if (transformed.getSample().poissonColumns < bootstrapTrials) {

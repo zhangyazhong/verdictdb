@@ -71,7 +71,6 @@ public class Configuration {
         return set(key, val);
     }
 
-    // TODO: Key and value validation
     public Configuration set(String key, String value) {
         configs.put(key.toLowerCase(), value);
         return this;
