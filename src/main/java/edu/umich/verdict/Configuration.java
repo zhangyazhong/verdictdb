@@ -2,7 +2,6 @@ package edu.umich.verdict;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.Properties;
 import java.util.Scanner;
 
 public class Configuration {
