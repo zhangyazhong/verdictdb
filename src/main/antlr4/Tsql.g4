@@ -37,7 +37,7 @@ verdict_statement
     ;
 
 create_sample_statement
-    : T_CREATE T_SAMPLE sample=table_name T_FROM table=table_name T_SIZE size=FLOAT '%' (T_STORE poission_cols=DECIMAL T_POISSON T_COLUMNS)? (T_STRATIFIED T_BY column_name (',' column_name)*)?
+    : T_CREATE T_SAMPLE sample=table_name T_FROM table=table_name T_WITH T_SIZE size=(FLOAT | DECIMAL) '%' (T_STORE poission_cols=DECIMAL T_POISSON T_COLUMNS)? (T_STRATIFIED T_BY column_name (',' column_name)*)?
     ;
 
 delete_sample_statement
@@ -53,14 +53,45 @@ config_statement
     | config_get_statement
     ;
 
-config_set_statement: T_SET key=config_key '=' value=(ID | STRING | DOUBLE_QUOTE_ID | DECIMAL | FLOAT) percent='%'?;
+config_set_statement: T_SET key=config_key '=' value=config_value percent='%'?;
 
 config_get_statement: T_GET key=config_key;
 
 config_key: ID('.' ID)*;
 
+config_value
+    : T_ALL
+    | T_UNIFORM
+    | T_STRATIFIED
+    | T_ON
+    | T_OFF
+    | ID
+    | STRING
+    | DOUBLE_QUOTE_ID
+    | DECIMAL
+    | FLOAT
+    ;
+
+T_CREATE: C R E A T E;
+T_SAMPLE: S A M P L E;
+T_FROM: F R O M;
+T_WITH: W I T H;
+T_SIZE: S I Z E;
+T_STORE: S T O R E;
+T_POISSON: P O I S S O N;
+T_COLUMNS: C O L U M N S;
+T_STRATIFIED: S T R A T I F I E D;
+T_BY: B Y;
+T_DELETE: D E L E T E;
+T_SHOW: S H O W;
+T_UNIFORM: U N I F O R M;
+T_ALL: A L L;
+T_SAMPLES: S A M P L E S;
+T_FOR: F O R;
 T_SET: S E T;
 T_GET: G E T;
+T_ON: O N;
+T_OFF: O F F;
 
 // VERDICT
 
