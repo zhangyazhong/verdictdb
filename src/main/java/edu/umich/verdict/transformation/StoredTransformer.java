@@ -18,8 +18,8 @@ public class StoredTransformer extends QueryTransformer {
                 StringBuilder buf = new StringBuilder(", ");
                 buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
                 int trials = bootstrapTrials;
-                if (transformed.getSample().poissonColumns < bootstrapTrials) {
-                    trials = transformed.getSample().poissonColumns;
+                if (transformed.getSample().getPoissonColumns() < bootstrapTrials) {
+                    trials = transformed.getSample().getPoissonColumns();
                     System.err.println("WARNING: Selected sample has just " + trials + " Poisson number columns, however bootstrap.trials is set to " + bootstrapTrials + " which is more than available Poisson number columns. Performing " + trials + " bootstrap trials...");
                 }
                 for (int i = 0; i < trials; i++)
@@ -48,9 +48,9 @@ public class StoredTransformer extends QueryTransformer {
 
     @Override
     protected Sample getPreferred(Sample first, Sample second) {
-        if (second.poissonColumns < bootstrapTrials)
-            return second.poissonColumns < first.poissonColumns ? first : second;
+        if (second.getPoissonColumns() < bootstrapTrials)
+            return second.getPoissonColumns() < first.getPoissonColumns() ? first : second;
         else
-            return second.poissonColumns > first.poissonColumns && first.poissonColumns >= bootstrapTrials ? first : second;
+            return second.getPoissonColumns() > first.getPoissonColumns() && first.getPoissonColumns() >= bootstrapTrials ? first : second;
     }
 }

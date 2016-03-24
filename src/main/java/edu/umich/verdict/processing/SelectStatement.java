@@ -2,6 +2,7 @@ package edu.umich.verdict.processing;
 
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.DbConnector;
+import edu.umich.verdict.models.StratifiedSample;
 import edu.umich.verdict.transformation.QueryTransformer;
 import edu.umich.verdict.transformation.TransformedQuery;
 import org.antlr.v4.runtime.TokenStreamRewriter;
@@ -24,8 +25,8 @@ public class SelectStatement extends ParsedStatement {
             info("New Query:");
             info(q);
             info("\n");
-            info("Using Sample: " + transformed.getSample().name + " Size: " + (transformed.getSample().compRatio *
-                    100) + "%" + " Type: " + (transformed.getSample().stratified ? "Stratified" : "Uniform"));
+            info("Using Sample: " + transformed.getSample().getName() + " Size: " + (transformed.getSample().getCompRatio() *
+                    100) + "%" + " Type: " + (transformed.getSample() instanceof StratifiedSample ? "Stratified" : "Uniform"));
             info("Bootstrap Trials: " + transformed.getBootstrapRepeats());
             info("Method: " + transformed.getMethod());
             rs = connector.executeQuery(q);

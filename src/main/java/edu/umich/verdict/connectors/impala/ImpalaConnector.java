@@ -16,7 +16,7 @@ public class ImpalaConnector extends DbConnector {
             hiveConnector = new HiveConnector(conf);
         } catch (Exception e) {
             //TODO: logger
-            System.out.println("WARNING: Could not connect to Hive. You can query on existed samples but you cannot " +
+            System.err.println("WARNING: Could not connect to Hive. You can query on existed samples but you cannot " +
                     "create new samples.");
         }
     }

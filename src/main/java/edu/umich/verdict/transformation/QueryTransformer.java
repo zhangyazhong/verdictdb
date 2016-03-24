@@ -3,6 +3,7 @@ package edu.umich.verdict.transformation;
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.models.Sample;
+import edu.umich.verdict.models.StratifiedSample;
 import edu.umich.verdict.parser.TsqlBaseVisitor;
 import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.SelectStatement;
@@ -49,8 +50,8 @@ public abstract class QueryTransformer {
         rewriter = q.getRewriter();
         confidence = conf.getPercent("bootstrap.confidence");
         bootstrapTrials = conf.getInt("bootstrap.trials");
-        preferredSample = conf.getPercent("bootstrap.sample-size");
-        sampleType = conf.get("bootstrap.sample-type").toLowerCase();
+        preferredSample = conf.getPercent("bootstrap.sample_size");
+        sampleType = conf.get("bootstrap.sample_type").toLowerCase();
         transformed = new TransformedQuery(q, bootstrapTrials, confidence, conf.get("bootstrap.method").toLowerCase());
     }
 
@@ -68,9 +69,9 @@ public abstract class QueryTransformer {
                 if (sample != null) {
                     if (ctx.as_table_alias() == null)
                         // if there is no alias, we add an alias equal to the original table name to eliminate side-effects of this change in other parts of the query
-                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.name + " AS " + nameCtx.table.getText());
+                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.getName() + " AS " + nameCtx.table.getText());
                     else
-                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.name);
+                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.getName());
                     transformed.setSample(sample);
                 }
                 return null;
@@ -132,9 +133,9 @@ public abstract class QueryTransformer {
         double min = 1000;
         Sample best = null;
         for (Sample s : metaDataManager.getTableSamples(tableName)) {
-            if ((s.stratified && sampleType.equals("uniform")) || (!s.stratified && sampleType.equals("stratified")))
+            if ((s instanceof StratifiedSample && sampleType.equals("uniform")) || (!(s instanceof StratifiedSample) && sampleType.equals("stratified")))
                 continue;
-            double diff = Math.abs(s.compRatio - preferredSample);
+            double diff = Math.abs(s.getCompRatio() - preferredSample);
             if ((min > preferredSample * .2 && diff < min) || (diff <= preferredSample * .2 && best != null &&
                     getPreferred(s, best) == s)) {
                 min = diff;
@@ -145,7 +146,7 @@ public abstract class QueryTransformer {
     }
 
     protected Sample getPreferred(Sample first, Sample second) {
-        return second.poissonColumns > first.poissonColumns ? first : second;
+        return second.getPoissonColumns() > first.getPoissonColumns() ? first : second;
     }
 
     protected class SelectListItem {
@@ -206,12 +207,12 @@ public abstract class QueryTransformer {
         }
 
         protected double getScale() {
-            if (transformed.getSample().stratified)
+            if (transformed.getSample() instanceof StratifiedSample)
                 return 1;
             switch (getAggregateType()) {
                 case SUM:
                 case COUNT:
-                    return 1 / transformed.getSample().compRatio;
+                    return 1 / transformed.getSample().getCompRatio();
                 default:
                     return 1;
             }
