@@ -1,6 +1,7 @@
 package edu.umich.verdict.cli;
 
 import edu.umich.verdict.Configuration;
+import edu.umich.verdict.connectors.CannotConnectException;
 import edu.umich.verdict.connectors.DbConnector;
 
 import java.io.File;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 
+import edu.umich.verdict.connectors.DbmsNotSupportedException;
 import jline.console.ConsoleReader;
 import jline.console.history.*;
 import org.apache.commons.cli.*;
@@ -23,13 +25,19 @@ public class Cli {
             return;
         }
         if (conf == null) {
-            System.err.println("Wrong arguments, You should either specify a DBMS to connect to (e.g. '-dbms " +
+            System.err.println("Wrong arguments; You should either specify a DBMS to connect to (e.g. '-dbms " +
                     "impala') or provide a config file (e.g. '-conf path/to/file.config')");
             return;
         }
         try {
             new Cli(conf).run();
-        } catch (Exception e) {
+        } catch (DbmsNotSupportedException e) {
+            System.err.println(e.getMessage());
+        } catch (CannotConnectException e) {
+            System.err.println(e.getMessage());
+            System.err.println(e.getCause().getMessage());
+        } catch (IOException e) {
+            System.err.println("Error occurred while initializing CLI.");
             System.err.println(e.getMessage());
         }
     }
@@ -51,6 +59,8 @@ public class Cli {
         try {
             org.apache.commons.cli.CommandLine commandLine = new DefaultParser().parse(options, args);
             String dbms = commandLine.getOptionValue("dbms", null), file = commandLine.getOptionValue("conf", null);
+            if(dbms == null && file==null)
+                return null;
             Configuration conf = file == null ? new Configuration() : new Configuration(new File(file));
             if (dbms != null)
                 conf.set("dbms", dbms);
@@ -65,7 +75,7 @@ public class Cli {
     private ConsoleReader reader;
     private PrintWriter out;
 
-    public Cli(Configuration config) throws Exception {
+    public Cli(Configuration config) throws DbmsNotSupportedException, CannotConnectException, IOException {
         this.config = config;
         this.connector = DbConnector.createConnector(config);
         System.out.println("Successfully connected to " + config.get("dbms") + ".");

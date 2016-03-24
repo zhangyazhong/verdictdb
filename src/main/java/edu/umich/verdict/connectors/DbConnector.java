@@ -6,18 +6,17 @@ import edu.umich.verdict.connectors.impala.ImpalaConnector;
 import java.sql.*;
 
 public abstract class DbConnector {
-    public static DbConnector createConnector(Configuration conf) throws Exception {
+    public static DbConnector createConnector(Configuration conf) throws DbmsNotSupportedException, CannotConnectException {
         String dbms = conf.get("dbms");
         String clsName = "edu.umich.verdict.connectors." + dbms + "." + (dbms.charAt(0) + "").toUpperCase() + dbms.substring(1)
                 .toLowerCase() + "Connector";
         try {
             Class<DbConnector> cls = (Class<DbConnector>) Class.forName(clsName);
             return cls.getConstructor(Configuration.class).newInstance(conf);
+        } catch (ClassNotFoundException e) {
+            throw new DbmsNotSupportedException(dbms, e);
         } catch (ReflectiveOperationException e) {
-            e.printStackTrace();
-            //TODO: customize exceptions
-            throw new Exception(dbms + " is not supported by Verdict. (Class " + clsName + " not " +
-                    "found)" + ".");
+            throw new CannotConnectException(dbms, (SQLException) e.getCause());
         }
     }
 
