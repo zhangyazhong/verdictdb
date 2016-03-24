@@ -1,6 +1,7 @@
 package edu.umich.verdict.connectors.impala;
 
 import edu.umich.verdict.Configuration;
+import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.connectors.hive.HiveConnector;
@@ -10,7 +11,7 @@ import java.sql.SQLException;
 public class ImpalaConnector extends DbConnector {
     private HiveConnector hiveConnector;
 
-    public ImpalaConnector(Configuration conf) throws SQLException, ClassNotFoundException {
+    public ImpalaConnector(Configuration conf) throws SQLException, ClassNotFoundException, InvalidConfigurationException {
         super(conf);
         try {
             hiveConnector = new HiveConnector(conf);

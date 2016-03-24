@@ -1,12 +1,16 @@
 package edu.umich.verdict.connectors;
 
 import edu.umich.verdict.Configuration;
-import edu.umich.verdict.connectors.impala.ImpalaConnector;
+import edu.umich.verdict.InvalidConfigurationException;
 
 import java.sql.*;
 
 public abstract class DbConnector {
-    public static DbConnector createConnector(Configuration conf) throws DbmsNotSupportedException, CannotConnectException {
+    protected Connection connection;
+    private MetaDataManager metaDataManager = null;
+    protected final String udfBin;
+
+    public static DbConnector createConnector(Configuration conf) throws DbmsNotSupportedException, CannotConnectException, InvalidConfigurationException {
         String dbms = conf.get("dbms");
         String clsName = "edu.umich.verdict.connectors." + dbms + "." + (dbms.charAt(0) + "").toUpperCase() + dbms.substring(1)
                 .toLowerCase() + "Connector";
@@ -16,16 +20,18 @@ public abstract class DbConnector {
         } catch (ClassNotFoundException e) {
             throw new DbmsNotSupportedException(dbms, e);
         } catch (ReflectiveOperationException e) {
-            throw new CannotConnectException(dbms, (SQLException) e.getCause());
+            if (e.getCause() instanceof InvalidConfigurationException)
+                throw (InvalidConfigurationException) e.getCause();
+            throw new CannotConnectException(dbms, e.getCause());
         }
     }
 
-    protected Connection connection;
-    private MetaDataManager metaDataManager = null;
-
-    protected DbConnector(Configuration conf) throws SQLException,
-            ClassNotFoundException {
+    protected DbConnector(Configuration conf) throws SQLException, ClassNotFoundException, InvalidConfigurationException {
         String name = this.getDbmsName().toLowerCase();
+        udfBin = conf.get("udf_bin");
+        if (udfBin == null) {
+            throw new InvalidConfigurationException("Configuration udf_bin is not set.");
+        }
         connect(getConnectionString(conf.get(name + ".host"), conf.get(name + ".port")), conf.get(name + ".user"), conf.get(name + ".password"));
         this.metaDataManager = createMetaDataManager();
     }
@@ -45,6 +51,7 @@ public abstract class DbConnector {
     }
 
     protected void connect(String connectionString, String user, String password) throws SQLException, ClassNotFoundException {
+
         if (connection != null && !connection.isClosed())
             return;
         Class.forName(getDriverClassPath());

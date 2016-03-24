@@ -1,6 +1,7 @@
 package edu.umich.verdict.cli;
 
 import edu.umich.verdict.Configuration;
+import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.connectors.CannotConnectException;
 import edu.umich.verdict.connectors.DbConnector;
 
@@ -31,7 +32,7 @@ public class Cli {
         }
         try {
             new Cli(conf).run();
-        } catch (DbmsNotSupportedException e) {
+        } catch (DbmsNotSupportedException | InvalidConfigurationException e) {
             System.err.println(e.getMessage());
         } catch (CannotConnectException e) {
             System.err.println(e.getMessage());
@@ -75,7 +76,7 @@ public class Cli {
     private ConsoleReader reader;
     private PrintWriter out;
 
-    public Cli(Configuration config) throws DbmsNotSupportedException, CannotConnectException, IOException {
+    public Cli(Configuration config) throws DbmsNotSupportedException, CannotConnectException, IOException, InvalidConfigurationException {
         this.config = config;
         this.connector = DbConnector.createConnector(config);
         System.out.println("Successfully connected to " + config.get("dbms") + ".");
