@@ -59,7 +59,7 @@ public class MetaDataManager {
     protected String createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {
         String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3";
         executeStatement("drop table if exists " + tmp1);
-        String strataCols = sample.getStrataColsStr();
+        String strataCols = sample.getStrataColumnsString();
         System.out.println("Collecting groups stats...");
         executeStatement("create table  " + tmp1 + " as (select " + strataCols + ", count(*) as cnt from " + sample.getTableName() + " group by " + strataCols + ")");
         computeTableStats(tmp1);
@@ -78,6 +78,8 @@ public class MetaDataManager {
         executeStatement("create table  " + tmp3 + " as (select " + strataCols + ", count(*) as cnt from " + tmp2 + " group by " + strataCols + ")");
         String joinConds = sample.getJoinCond("s", "t");
         System.out.println("Calculating group weights...");
+        //ratio = (# of tuples in table)/(# of tupples in sample) for each stratum => useful for COUNT and SUM
+        //weight = (# of stratum tuples in table)/(table size) => useful for AVG
         executeStatement("create table " + getWeightsTable(sample) + " as (select s." + strataCols.replaceAll(",", ",s.") + ", t.cnt/s.cnt as ratio, t.cnt/" + tableSize + " as weight from " + tmp1 + " as t join " + tmp3 + " as s on " + joinConds + ")");
         executeStatement("drop table if exists " + tmp1);
         executeStatement("drop table if exists " + tmp3);
@@ -120,7 +122,7 @@ public class MetaDataManager {
     }
 
     private void saveSampleInfo(StratifiedSample sample) throws SQLException {
-        String q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + sample.getStrataColsStr() + "')";
+        String q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + sample.getStrataColumnsString() + "')";
         executeStatement(q);
         loadSamples();
     }
@@ -129,7 +131,7 @@ public class MetaDataManager {
         return samples.stream().filter(s -> s.getTableName().equals(tableName)).collect(Collectors.toList());
     }
 
-    protected String getWeightsTable(StratifiedSample sample) {
+    public String getWeightsTable(StratifiedSample sample) {
         return METADATA_DATABASE + "." + sample.getName() + "_w";
     }
 

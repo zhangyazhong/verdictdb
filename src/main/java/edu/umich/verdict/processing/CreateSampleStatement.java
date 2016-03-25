@@ -18,9 +18,9 @@ public class CreateSampleStatement extends ParsedStatement {
         TsqlParser.Create_sample_statementContext ctx = (TsqlParser.Create_sample_statementContext) tree;
         String name = ctx.sample.getText();
         String table = ctx.table.getText();
-        int poissonCols = ctx.T_POISSON() != null ? Integer.parseInt(ctx.poission_cols.getText()) : 0;
+        int poissonCols = ctx.POISSON() != null ? Integer.parseInt(ctx.poission_cols.getText()) : 0;
         double size = Double.parseDouble(ctx.size.getText()) / 100;
-        boolean stratified = ctx.T_STRATIFIED() != null;
+        boolean stratified = ctx.STRATIFIED() != null;
         if (stratified) {
             String[] strataCols = new String[ctx.column_name().size()];
             for (int i = 0; i < strataCols.length; i++)

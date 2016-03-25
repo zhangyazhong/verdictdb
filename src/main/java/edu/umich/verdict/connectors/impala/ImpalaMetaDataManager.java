@@ -19,7 +19,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
     protected String createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {
         String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3";
         executeStatement("drop table if exists " + tmp1);
-        String strataCols = sample.getStrataColsStr();
+        String strataCols = sample.getStrataColumnsString();
         System.out.println("Collecting groups stats...");
         executeStatement("create table  " + tmp1 + " as (select " + strataCols + ", count(*) as cnt from " + sample.getTableName() + " group by " + strataCols + ")");
         computeTableStats(tmp1);

@@ -11,46 +11,58 @@ public class StoredTransformer extends QueryTransformer {
     }
 
     @Override
-    protected boolean addBootstrapTrials() {
-        for (int j = selectItems.size() - 1; j >= 0; j--) {
-            SelectListItem item = selectItems.get(j);
-            if (item.isSupportedAggregate()) {
-                StringBuilder buf = new StringBuilder(", ");
-                buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
-                int trials = bootstrapTrials;
-                if (transformed.getSample().getPoissonColumns() < bootstrapTrials) {
-                    trials = transformed.getSample().getPoissonColumns();
-                    System.err.println("WARNING: Selected sample has just " + trials + " Poisson number columns, however bootstrap.trials is set to " + bootstrapTrials + " which is more than available Poisson number columns. Performing " + trials + " bootstrap trials...");
-                }
-                for (int i = 0; i < trials; i++)
-                    buf.append(getTrialExpression(item, i + 1)).append(", ");
-                buf.replace(buf.length() - 2, buf.length(), ")");
-                buf.append(" AS CI_").append(item.getIndex()).append(" ");
-                rewriter.insertAfter(selectList.stop, buf.toString());
-            }
+    protected String getBootstrapTrials(SelectListItem item) {
+        StringBuilder buf = new StringBuilder();
+        if (transformed.getSample().getPoissonColumns() < bootstrapTrials) {
+            int requestedTrials = bootstrapTrials;
+            bootstrapTrials = transformed.getSample().getPoissonColumns();
+            System.err.println("WARNING: Selected sample has just " + bootstrapTrials + " Poisson number columns, however bootstrap.trials is set to " + requestedTrials + " which is more than available Poisson number columns. Performing " + bootstrapTrials + " bootstrap trials...");
         }
-        return true;
+        for (int i = 0; i < bootstrapTrials; i++)
+            buf.append(getTrialExpression(item, i + 1)).append(", ");
+        buf.replace(buf.length() - 2, buf.length(), "");
+        return buf.toString();
     }
 
-    private String getTrialExpression(SelectListItem item, int i) {
+    @Override
+    protected String getTrialExpression(SelectListItem item, int trial) {
         String pref = metaDataManager.getPossionColumnPrefix();
         switch (item.getAggregateType()) {
             case AVG:
-                return "sum((" + item.getExpression() + ") * " + pref + i + ")/sum(" + pref + i + ")";
+                return "sum((" + item.getExpression() + ") * " + pref + trial + ")/sum(" + pref + trial + ")";
             case SUM:
-                return "sum((" + item.getExpression() + ") * " + pref + i + ")";
+                return "sum((" + item.getExpression() + ") * " + pref + trial + ")";
             case COUNT:
-                return "sum(" + pref + i + ")";
+                return "sum(" + pref + trial + ")";
             default:
                 return null;
         }
     }
 
     @Override
-    protected Sample getPreferred(Sample first, Sample second) {
-        if (second.getPoissonColumns() < bootstrapTrials)
-            return second.getPoissonColumns() < first.getPoissonColumns() ? first : second;
+    protected Sample getSample(String tableName) {
+        Sample sample = super.getSample(tableName);
+        if (sample != null && sample.getPoissonColumns() == 0)
+            return null;
+        return sample;
+    }
+
+    @Override
+    protected Sample getPreferred(Sample sample1, Sample sample2) {
+        if (sample1.getPoissonColumns() == 0)
+            return sample2;
+        if (sample2.getPoissonColumns() == 0)
+            return sample1;
+
+        double diff1 = Math.max(sample1.getCompRatio() / preferredSample, preferredSample / sample1.getCompRatio());
+        double diff2 = Math.max(sample2.getCompRatio() / preferredSample, preferredSample / sample2.getCompRatio());
+        if (diff1 > 1.2 && diff2 < diff1)
+            return sample2;
+        if (diff2 > 1.2 && diff1 <= diff2)
+            return sample1;
+        if (sample2.getPoissonColumns() < bootstrapTrials)
+            return sample2.getPoissonColumns() < sample1.getPoissonColumns() ? sample1 : sample2;
         else
-            return second.getPoissonColumns() > first.getPoissonColumns() && first.getPoissonColumns() >= bootstrapTrials ? first : second;
+            return sample2.getPoissonColumns() > sample1.getPoissonColumns() && sample1.getPoissonColumns() >= bootstrapTrials ? sample1 : sample2;
     }
 }

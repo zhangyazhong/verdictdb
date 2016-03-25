@@ -14,22 +14,8 @@ public class UdaTransformer extends QueryTransformer {
     }
 
     @Override
-    protected boolean addBootstrapTrials() {
-        for (int j = selectItems.size() - 1; j >= 0; j--) {
-            SelectListItem item = selectItems.get(j);
-            if (item.isSupportedAggregate()) {
-                String uda = getUda(item);
-                String expr = item.getExpression();
-                StringBuilder buf = new StringBuilder(", ");
-                buf.append("verdict.conf_int(").append(confidence).append(", ").append(item.getScale()).append(", ");
-                for (int i = 0; i < bootstrapTrials; i++)
-                    buf.append(uda).append("(").append(getRandomSeed()).append(", ").append(expr).append("), ");
-                buf.replace(buf.length() - 2, buf.length(), ")");
-                buf.append(" AS CI_").append(item.getIndex()).append(" ");
-                rewriter.insertAfter(selectList.stop, buf.toString());
-            }
-        }
-        return true;
+    protected String getTrialExpression(SelectListItem item, int trial) {
+        return getUda(item) + "(" + getRandomSeed() + ", " + item.getExpression() + ")";
     }
 
     private int getRandomSeed() {

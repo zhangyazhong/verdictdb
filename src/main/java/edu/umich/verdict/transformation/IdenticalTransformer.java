@@ -10,12 +10,12 @@ public class IdenticalTransformer extends QueryTransformer {
     }
 
     @Override
-    protected boolean addBootstrapTrials() {
-        return false;
+    public TransformedQuery transform(){
+        return transformed;
     }
 
     @Override
-    public TransformedQuery transform(){
-        return transformed;
+    protected String getTrialExpression(SelectListItem item, int trial) {
+        return null;
     }
 }
