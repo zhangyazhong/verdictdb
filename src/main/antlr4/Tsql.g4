@@ -41,7 +41,7 @@ create_sample_statement
     ;
 
 delete_sample_statement
-    : DELETE SAMPLE sample=table_name
+    : (DELETE | DROP) SAMPLE sample=table_name
     ;
 
 show_samples_statement

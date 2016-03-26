@@ -35,6 +35,7 @@ public class MetaDataManager {
     }
 
     //TODO: General implementation
+    //TODO: cleanup if failed
     public void createSample(Sample sample) throws Exception {
         loadSamples();
         for (Sample s : samples)
@@ -50,9 +51,10 @@ public class MetaDataManager {
         addPoissonCols(sample, tmpName);
         executeStatement("drop table if exists " + tmpName);
         computeSampleStats(sample);
-        sample.setRowCount(getTableSize(sample.getName()));
+        sample.setRowCount(getTableSize(getSampleFullName(sample)));
         sample.setCompRatio((double) sample.getRowCount() / tableSize);
         saveSampleInfo(sample);
+
     }
 
     //TODO: General implementation
@@ -60,10 +62,11 @@ public class MetaDataManager {
         String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3";
         executeStatement("drop table if exists " + tmp1);
         String strataCols = sample.getStrataColumnsString();
-        System.out.println("Collecting groups stats...");
+        System.out.println("Collecting strata stats...");
         executeStatement("create table  " + tmp1 + " as (select " + strataCols + ", count(*) as cnt from " + sample.getTableName() + " group by " + strataCols + ")");
         computeTableStats(tmp1);
         long groups = getTableSize(tmp1);
+        //TODO: don't continue if groupLimit is too small
         long groupLimit = (long) ((tableSize * sample.getCompRatio()) / groups);
         executeStatement("drop table if exists " + tmp2);
         StringBuilder buf = new StringBuilder();
@@ -99,7 +102,7 @@ public class MetaDataManager {
 
     protected void computeSampleStats(Sample sample) throws SQLException {
         System.out.println("Computing sample stats...");
-        computeTableStats(sample.getName());
+        computeTableStats(getSampleFullName(sample));
     }
 
     protected void computeTableStats(String name) throws SQLException {
@@ -108,21 +111,19 @@ public class MetaDataManager {
 
     protected void addPoissonCols(Sample sample, String fromTable) throws SQLException {
         System.out.println("Adding " + sample.getPoissonColumns() + " Poisson random number columns to the sample...");
-        StringBuilder buf = new StringBuilder("create table " + sample.getName() + " stored as parquet as (select *");
+        StringBuilder buf = new StringBuilder("create table " + getSampleFullName(sample) + " stored as parquet as (select *");
         for (int i = 1; i <= sample.getPoissonColumns(); i++)
-            buf.append(",poisson() as __p").append(i);
+            buf.append("," + METADATA_DATABASE + ".poisson() as v__p").append(i);
         buf.append(" from ").append(fromTable).append(")");
         executeStatement(buf.toString());
     }
 
     private void saveSampleInfo(Sample sample) throws SQLException {
-        String q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(0 as boolean), '')";
-        executeStatement(q);
-        loadSamples();
-    }
-
-    private void saveSampleInfo(StratifiedSample sample) throws SQLException {
-        String q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + sample.getStrataColumnsString() + "')";
+        String q;
+        if (sample instanceof StratifiedSample)
+            q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + ((StratifiedSample)sample).getStrataColumnsString() + "')";
+        else
+            q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(0 as boolean), '')";
         executeStatement(q);
         loadSamples();
     }
@@ -162,6 +163,7 @@ public class MetaDataManager {
     }
 
     public void deleteSample(String name) throws SQLException {
+        //TODO: general implementation
         Sample sample = null;
         for (Sample s : samples)
             if (s.getName().equals(name)) {
@@ -170,7 +172,7 @@ public class MetaDataManager {
             }
         if (sample == null)
             throw new SQLException("No sample with this name exists.");
-        executeStatement("drop table if exists " + name);
+        executeStatement("drop table if exists " + getSampleFullName(sample));
         if (sample instanceof StratifiedSample)
             executeStatement("drop table if exists " + getWeightsTable((StratifiedSample) sample));
         executeStatement("drop table if exists " + METADATA_DATABASE + ".oldSample");
@@ -178,6 +180,10 @@ public class MetaDataManager {
         executeStatement("create table " + METADATA_DATABASE + ".sample as (select * from " + METADATA_DATABASE + ".oldSample where name <> '" + name + "')");
         executeStatement("drop table if exists " + METADATA_DATABASE + ".oldSample");
         samples.remove(sample);
+    }
+
+    public String getSampleFullName(Sample sample) {
+        return METADATA_DATABASE + ".s_" + sample.getName();
     }
 
     public ArrayList<String> getTableCols(String name) throws SQLException {
@@ -200,7 +206,6 @@ public class MetaDataManager {
     }
 
     public String getPossionColumnPrefix() {
-        //TODO: replace with v__p
-        return "__p";
+        return "v__p";
     }
 }

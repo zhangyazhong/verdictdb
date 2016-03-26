@@ -14,8 +14,8 @@ public class ShowSamplesStatement extends ParsedStatement {
     private final String type;
     private final String table;
 
-    public ShowSamplesStatement(String str, ParseTree tree, TokenStreamRewriter rewriter) {
-        super(str, tree, rewriter);
+    public ShowSamplesStatement(String str, ParseTree tree) {
+        super(str, tree);
         TsqlParser.Show_samples_statementContext ctx = (TsqlParser.Show_samples_statementContext) tree;
         type = ctx.type != null ? ctx.type.getText().toLowerCase() : "any";
         table = ctx.table != null ? ctx.table.getText().toLowerCase() : null;

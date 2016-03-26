@@ -71,10 +71,10 @@ public abstract class QueryTransformer {
                 if (sample != null) {
                     if (ctx.as_table_alias() == null) {
                         // if there is no alias, we add an alias equal to the original table name to eliminate side-effects of this change in other parts of the query
-                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.getName() + " AS " + nameCtx.table.getText());
+                        rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample) + " AS " + nameCtx.table.getText());
                         sampleAlias = nameCtx.table.getText();
                     } else {
-                        rewriter.replace(nameCtx.start, nameCtx.stop, sample.getName());
+                        rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample));
                         sampleAlias = ctx.as_table_alias().table_alias().getText();
                     }
                     transformed.setSample(sample);

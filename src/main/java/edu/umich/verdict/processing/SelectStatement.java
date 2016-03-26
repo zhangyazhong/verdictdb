@@ -12,8 +12,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class SelectStatement extends ParsedStatement {
+    protected TokenStreamRewriter rewriter;
+
     public SelectStatement(String str, ParseTree tree, TokenStreamRewriter rewriter) {
-        super(str, tree, rewriter);
+        super(str, tree);
+        this.rewriter = rewriter;
     }
 
     @Override
@@ -39,4 +42,9 @@ public class SelectStatement extends ParsedStatement {
         }
         return rs;
     }
+
+    public TokenStreamRewriter getRewriter(){
+        return rewriter;
+    }
+
 }

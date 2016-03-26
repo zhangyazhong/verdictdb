@@ -13,8 +13,8 @@ import java.sql.ResultSet;
 public class CreateSampleStatement extends ParsedStatement {
     private Sample sample;
 
-    public CreateSampleStatement(String str, ParseTree tree, TokenStreamRewriter rewriter) {
-        super(str, tree, rewriter);
+    public CreateSampleStatement(String str, ParseTree tree) {
+        super(str, tree);
         TsqlParser.Create_sample_statementContext ctx = (TsqlParser.Create_sample_statementContext) tree;
         String name = ctx.sample.getText();
         String table = ctx.table.getText();

@@ -3,12 +3,16 @@ package edu.umich.verdict.transformation;
 import edu.umich.verdict.parser.TsqlLexer;
 import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.*;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.BailErrorStrategy;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.TokenStreamRewriter;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.atn.ATNConfigSet;
+import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
+
+import java.lang.reflect.InvocationTargetException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.BitSet;
 
 public class Parser {
     public static ParsedStatement parse(String q) throws Exception {
@@ -19,22 +23,35 @@ public class Parser {
         TokenStreamRewriter rewriter = new WSTokenStreamRewriter(tokens);
         parser.setErrorHandler(new BailErrorStrategy());
         parser.removeErrorListeners();
-        ParseTree tree;
+
         try {
-            tree = parser.select_statement();
+            ParseTree tree = parser.select_statement();
             return new SelectStatement(q, tree, rewriter);
         } catch (ParseCancellationException e) {
             try {
-                tree = parser.verdict_statement().getChild(0);
-                Class<ParsedStatement> cls = findClass(tree);
-                return cls.getConstructor(String.class, ParseTree.class, TokenStreamRewriter.class).newInstance(q, tree, rewriter);
+                return tryParseVerdictStatement(q, parser);
             } catch (ParseCancellationException e1) {
-                return new ParsedStatement(q, null, rewriter);
+                return new ParsedStatement(q, null);
             }
         }
     }
 
-    private static Class findClass(ParseTree tree) {
+    private static ParsedStatement tryParseVerdictStatement(String q, TsqlParser parser) throws SQLException, ParseCancellationException {
+        VerdictStatementErrorListener errorListener = new VerdictStatementErrorListener();
+        parser.addErrorListener(errorListener);
+        ParseTree tree = parser.verdict_statement().getChild(0);
+        if (errorListener.errorMessages.isEmpty()) {
+            Class<ParsedStatement> cls = findVerdictStatementClass(tree);
+            try {
+                return cls.getConstructor(String.class, ParseTree.class).newInstance(q, tree);
+            } catch (ReflectiveOperationException e) {
+                e.printStackTrace();
+            }
+        }
+        throw new SQLException(errorListener.errorMessages.get(0));
+    }
+
+    private static Class findVerdictStatementClass(ParseTree tree) {
         Class c = tree.getClass();
         if (c == TsqlParser.Show_samples_statementContext.class)
             return ShowSamplesStatement.class;
@@ -45,5 +62,14 @@ public class Parser {
         else if (c == TsqlParser.Config_statementContext.class)
             return ConfigStatement.class;
         return ParsedStatement.class;
+    }
+
+    private static class VerdictStatementErrorListener extends BaseErrorListener {
+        ArrayList<String> errorMessages = new ArrayList<>();
+
+        @Override
+        public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e) {
+            errorMessages.add("Error in line " + line + " at character " + charPositionInLine + ": " + msg);
+        }
     }
 }

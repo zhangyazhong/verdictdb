@@ -11,12 +11,10 @@ import java.sql.SQLException;
 public class ParsedStatement {
     protected String str;
     protected ParseTree tree;
-    protected TokenStreamRewriter rewriter;
 
-    public ParsedStatement(String str, ParseTree tree, TokenStreamRewriter rewriter){
+    public ParsedStatement(String str, ParseTree tree){
         this.str = str;
         this.tree = tree;
-        this.rewriter = rewriter;
     }
 
     //TODO: use customized exceptions
@@ -40,10 +38,6 @@ public class ParsedStatement {
 
     public ParseTree getParseTree(){
         return tree;
-    }
-
-    public TokenStreamRewriter getRewriter(){
-        return rewriter;
     }
 
     public String toString() {

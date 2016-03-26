@@ -8,7 +8,7 @@ import java.sql.*;
 public abstract class DbConnector {
     protected Connection connection;
     private MetaDataManager metaDataManager = null;
-    protected final String udfBin;
+    protected String udfBin;
 
     public static DbConnector createConnector(Configuration conf) throws DbmsNotSupportedException, CannotConnectException, InvalidConfigurationException {
         String dbms = conf.get("dbms");
@@ -28,12 +28,16 @@ public abstract class DbConnector {
 
     protected DbConnector(Configuration conf) throws SQLException, ClassNotFoundException, InvalidConfigurationException {
         String name = this.getDbmsName().toLowerCase();
+        initialize(conf);
+        connect(getConnectionString(conf.get(name + ".host"), conf.get(name + ".port")), conf.get(name + ".user"), conf.get(name + ".password"));
+        this.metaDataManager = createMetaDataManager();
+    }
+
+    protected void initialize(Configuration conf) throws InvalidConfigurationException {
         udfBin = conf.get("udf_bin");
         if (udfBin == null) {
             throw new InvalidConfigurationException("Configuration udf_bin is not set.");
         }
-        connect(getConnectionString(conf.get(name + ".host"), conf.get(name + ".port")), conf.get(name + ".user"), conf.get(name + ".password"));
-        this.metaDataManager = createMetaDataManager();
     }
 
     protected MetaDataManager createMetaDataManager() throws SQLException {

@@ -6,7 +6,7 @@ public class StratifiedSample extends Sample {
     private String[] strataColumns;
 
     public StratifiedSample(String name, String tableName, double compRatio, long rowCount, int poissonColumns, String[] strataColumns) {
-        super(name, tableName, new Date(), compRatio, rowCount, poissonColumns);
+        this(name, tableName, new Date(), compRatio, rowCount, poissonColumns, strataColumns);
     }
     public StratifiedSample(String name, String tableName, Date lastUpdate, double compRatio, long rowCount, int poissonColumns, String[] strataColumns) {
         super(name, tableName, lastUpdate, compRatio, rowCount, poissonColumns);

@@ -12,8 +12,8 @@ public class ConfigStatement extends ParsedStatement {
     private final String key;
     private final String value;
 
-    public ConfigStatement(String str, ParseTree tree, TokenStreamRewriter rewriter) {
-        super(str, tree, rewriter);
+    public ConfigStatement(String str, ParseTree tree) {
+        super(str, tree);
         ParseTree ctx = tree.getChild(0);
         if (ctx instanceof TsqlParser.Config_set_statementContext) {
             key = ((TsqlParser.Config_set_statementContext) ctx).key.getText();

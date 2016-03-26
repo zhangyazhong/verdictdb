@@ -12,8 +12,8 @@ import java.sql.SQLException;
 public class DeleteSampleStatement extends ParsedStatement {
     private final String sample;
 
-    public DeleteSampleStatement(String str, ParseTree tree, TokenStreamRewriter rewriter) {
-        super(str, tree, rewriter);
+    public DeleteSampleStatement(String str, ParseTree tree) {
+        super(str, tree);
         this.sample = ((TsqlParser.Delete_sample_statementContext) tree)
                 .table_name().getText();
     }

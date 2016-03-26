@@ -13,6 +13,11 @@ public class ImpalaConnector extends DbConnector {
 
     public ImpalaConnector(Configuration conf) throws SQLException, ClassNotFoundException, InvalidConfigurationException {
         super(conf);
+    }
+
+    @Override
+    protected void initialize(Configuration conf) throws InvalidConfigurationException {
+        super.initialize(conf);
         try {
             hiveConnector = new HiveConnector(conf);
         } catch (Exception e) {
