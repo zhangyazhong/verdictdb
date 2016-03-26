@@ -15,7 +15,7 @@ public class UdaTransformer extends QueryTransformer {
 
     @Override
     protected String getTrialExpression(SelectListItem item, int trial) {
-        return getUda(item) + "(" + getRandomSeed() + ", " + item.getExpression() + ")";
+        return getUda(item) + "(" + getRandomSeed() + ", " + item.getInnerExpression() + ")";
     }
 
     private int getRandomSeed() {

@@ -135,12 +135,9 @@ public abstract class QueryTransformer {
             return;
         outer:
         for (TsqlParser.Group_by_itemContext ctx : selectCtx.group_by_item()) {
-            String expr = ctx.expression().getText();
+            String expr = transformed.getOriginalText(ctx.expression());
             for (SelectListItem item : selectItems)
-                if (item.getOriginalAlias().equals(expr)) {
-                    groupBys.add(item);
-                    continue outer;
-                } else if (item.getExpression().equals(expr)) {
+                if (item.isForExpression(expr)) {
                     groupBys.add(item);
                     continue outer;
                 }
@@ -278,7 +275,7 @@ public abstract class QueryTransformer {
             }
             selectItems.add(itemInfo);
             if (itemInfo.isSupportedAggregate())
-                transformed.addAggregate(itemInfo.getAggregateType(), itemInfo.getExpression(), itemInfo.getIndex());
+                transformed.addAggregate(itemInfo.getAggregateType(), itemInfo.getInnerExpression(), itemInfo.getIndex());
         }
         return !transformed.getAggregates().isEmpty();
     }
@@ -315,7 +312,8 @@ public abstract class QueryTransformer {
     protected class SelectListItem {
         private int index;
         private String expr;
-        private String aggr;
+        private String innerExpr=null;
+        private String aggr= null;
         private TransformedQuery.AggregateType aggregateType = TransformedQuery.AggregateType.NONE;
         private String alias = "";
         private boolean isSupportedAggregate = false;
@@ -328,7 +326,7 @@ public abstract class QueryTransformer {
                 //TODO: better exception
                 throw new Exception("In appropriate expression.");
             this.index = index;
-            this.expr = ctx.expression().getText();
+            this.expr = transformed.getOriginalText(ctx.expression());
             if (ctx.column_alias() != null)
                 alias = ctx.column_alias().getText();
             TsqlParser.ExpressionContext exprCtx = ctx.expression();
@@ -341,11 +339,11 @@ public abstract class QueryTransformer {
                         return;
                     if (aggCtx.all_distinct_expression() == null) {
                         // count(*)
-                        expr = "1";
+                        innerExpr = "1";
                     } else {
                         if (aggCtx.all_distinct_expression().DISTINCT() != null)
                             return;
-                        expr = aggCtx.all_distinct_expression().expression().getText();
+                        innerExpr = transformed.getOriginalText(aggCtx.all_distinct_expression().expression());
                     }
                     aggr = aggCtx.getChild(0).getText();
                     if (supportedAggregates.contains(aggr.toLowerCase())) {
@@ -361,7 +359,7 @@ public abstract class QueryTransformer {
             double scale = getScale();
             if (scale == 1)
                 return;
-            rewriter.replace(ctx.start, ctx.stop, scale + "*" + ctx.expression().getText() + " AS " + getOuterAlias());
+            rewriter.replace(ctx.start, ctx.stop, scale + "*" + expr + " AS " + getOuterAlias());
         }
 
         protected double getScale() {
@@ -384,8 +382,8 @@ public abstract class QueryTransformer {
             return index;
         }
 
-        public String getExpression() {
-            return expr;
+        public String getInnerExpression() {
+            return innerExpr;
         }
 
         public TransformedQuery.AggregateType getAggregateType() {
@@ -397,7 +395,6 @@ public abstract class QueryTransformer {
         }
 
         public void addInnerAlias() {
-            String expr = ctx.getText();
             rewriter.replace(ctx.start, ctx.stop, expr + " AS " + getInnerAlias());
         }
 
@@ -406,11 +403,15 @@ public abstract class QueryTransformer {
         }
 
         public String getOuterAlias() {
-            return getOriginalAlias().isEmpty() ? metaDataManager.getAliasCharacter() + ctx.expression().getText() + metaDataManager.getAliasCharacter() : getOriginalAlias();
+            return getOriginalAlias().isEmpty() ? metaDataManager.getAliasCharacter() + expr + metaDataManager.getAliasCharacter() : getOriginalAlias();
         }
 
         public String getWeightColumn() {
             return aggregateType == TransformedQuery.AggregateType.AVG ? "weight" : "ratio";
+        }
+
+        public boolean isForExpression(String expr){
+            return this.expr.equals(expr) || this.getOriginalAlias().equals(expr);
         }
     }
 }

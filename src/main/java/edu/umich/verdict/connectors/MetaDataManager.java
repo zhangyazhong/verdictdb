@@ -133,7 +133,7 @@ public class MetaDataManager {
     }
 
     public String getWeightsTable(StratifiedSample sample) {
-        return METADATA_DATABASE + "." + sample.getName() + "_w";
+        return METADATA_DATABASE + ".s_" + sample.getName() + "_w";
     }
 
     public void loadSamples() throws SQLException {

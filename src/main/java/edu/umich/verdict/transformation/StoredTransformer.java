@@ -29,9 +29,9 @@ public class StoredTransformer extends QueryTransformer {
         String pref = metaDataManager.getPossionColumnPrefix();
         switch (item.getAggregateType()) {
             case AVG:
-                return "sum((" + item.getExpression() + ") * " + pref + trial + ")/sum(" + pref + trial + ")";
+                return "sum((" + item.getInnerExpression() + ") * " + pref + trial + ")/sum(" + pref + trial + ")";
             case SUM:
-                return "sum((" + item.getExpression() + ") * " + pref + trial + ")";
+                return "sum((" + item.getInnerExpression() + ") * " + pref + trial + ")";
             case COUNT:
                 return "sum(" + pref + trial + ")";
             default:

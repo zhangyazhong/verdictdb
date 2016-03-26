@@ -3,7 +3,9 @@ package edu.umich.verdict.transformation;
 import edu.umich.verdict.models.Sample;
 import edu.umich.verdict.processing.ParsedStatement;
 import edu.umich.verdict.processing.SelectStatement;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.TokenStreamRewriter;
+import org.antlr.v4.runtime.misc.Interval;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +75,14 @@ public class TransformedQuery {
     public String getMethod() {
         return method;
     }
+
+    public String getOriginalText(ParserRuleContext ctx){
+        int a = ctx.start.getStartIndex();
+        int b = ctx.stop.getStopIndex();
+        Interval interval = new Interval(a,b);
+        return ctx.start.getInputStream().getText(interval);
+    }
+
 
     public class AggregateInfo {
         private AggregateType type;
