@@ -145,7 +145,7 @@ foo         |4848       |[4753, 5023]
 bar         |34613      |[34332, 34690]
 ```
 
-`ci_2` means the confidence interval for the column number 2. If there are more aggregate function in the query, there will be a column for the confidence interval of that aggregation at the end.
+`ci_2` means the confidence interval for the column number 2. If there are more aggregate function in the query, there will be a column for the confidence interval of each aggregation at the end.
  
 
 

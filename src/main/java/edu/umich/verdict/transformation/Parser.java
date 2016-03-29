@@ -4,15 +4,11 @@ import edu.umich.verdict.parser.TsqlLexer;
 import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.*;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.atn.ATNConfigSet;
-import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.BitSet;
 
 public class Parser {
     public static ParsedStatement parse(String q) throws Exception {
@@ -20,7 +16,7 @@ public class Parser {
         TsqlLexer lexer = new TsqlLexer(stream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         TsqlParser parser = new TsqlParser(tokens);
-        TokenStreamRewriter rewriter = new WSTokenStreamRewriter(tokens);
+        TokenStreamRewriter rewriter = new SpacePreserverTokenStreamRewriter(tokens);
         parser.setErrorHandler(new BailErrorStrategy());
         parser.removeErrorListeners();
 
