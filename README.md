@@ -1,7 +1,7 @@
 # Verdict
 
 Verdict makes database users able to get fast, approximate results for their aggregate queries on big data. It is designed as a middleware that stands between user's application and DBMS.
-Verdict gets the original query from user, transforms it to run on samples and calculate error estimate as well as approximate query answer. Then it sends the new query to DBMS and gets back the approximate answer and error estimate and sends them to the user. Sometimes, Verdict needs to post-process the result from DBMS before sending it to user. 
+Verdict gets the original query from user, transforms it to run on samples and calculate error estimate as well as approximate query answer. Then it sends the new query to DBMS and gets back the approximate answer and error estimate and sends them to the user. Sometimes, Verdict needs to post-process the result got from DBMS before sending it to user. 
 
 Verdict is designed in a way that be as decoupled as possible from the underlying DBMS. The main parts of Verdict are independent from DBMS and just small amount of code needs to be added to support a new DBMS. This design lets us (or other developers in the future) to easily create a diver for any SQL DBMS and run Verdict on top of that DBMS. Currently we have developed drivers for **Impala** and **Hive**. We plan to add drivers for some other popular DBMS's soon.
 
@@ -10,7 +10,7 @@ Verdict supports both uniform and stratified samples. It uses the bootstrap meth
 
 ## How to Install
 
-To install verdict you need to fist clone the repository and build the project:
+To install verdict you need to first clone the repository and build the project:
 
 ```
 git clone https://github.com/mozafari/verdict.git
@@ -26,8 +26,8 @@ A template for Verdict's configurations for each supported DBMS can be found in 
 
 ### Global Configurations
 
-The following configurations are related to approximate query processing and you may need to customized them regardless from the DBMS you use.
-The value of this option can also be changed during running verdict using command `SET`.
+The following configurations are related to approximate query processing and you may need to customized them regardless of what DBMS you use.
+The value of this options can also be changed during running verdict using command [`SET`](#set-and-get-commands).
  
 |Config         |Default Value  |Description                                        |
 |------         |-------------  |-----------                                        |
@@ -83,7 +83,7 @@ You should be able to see the message `Successfully connected to <DBMS>`.
 
 ## Samples
 
-Before you can submit any queries, you need to tell Verdict to create the samples you want. For that, you can use the `CREATE SAMPLE` command:
+Before you can submit any queries, you need to tell Verdict to create the samples you need. For doing that, you can use the `CREATE SAMPLE` command:
  
 ```
 CREATE SAMPLE <sample_name> FROM <table_name> WITH SIZE <size_percentage>% 
@@ -161,7 +161,7 @@ If Verdict identify a query as unsupported query, it will try running the query 
 
 ## `SET` and `GET` commands
 
-You can use `SET` and `GET` commands to set or get the value of a query processing parameters (global option) while verdict is running.
+You can use `SET` and `GET` commands to set or get the value of a query processing parameters [global configurations](#global-configurations) while verdict is running.
 
 ```
 SET <parameter> = <value>;
