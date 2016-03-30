@@ -2,6 +2,7 @@ package edu.umich.verdict.processing;
 
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.connectors.DbConnector;
+import edu.umich.verdict.jdbc.VResultSet;
 import edu.umich.verdict.models.StratifiedSample;
 import edu.umich.verdict.transformation.QueryTransformer;
 import edu.umich.verdict.transformation.TransformedQuery;
@@ -30,12 +31,10 @@ public class SelectStatement extends ParsedStatement {
             info("\n");
             info("Using Sample: " + transformed.getSample().getName() + " Size: " + (transformed.getSample().getCompRatio() *
                     100) + "%" + " Type: " + (transformed.getSample() instanceof StratifiedSample ? "Stratified" : "Uniform"));
-            info("Bootstrap Trials: " + transformed.getBootstrapRepeats());
+            info("Bootstrap Trials: " + transformed.getBootstrapTrials());
             info("Method: " + transformed.getMethod());
             rs = connector.executeQuery(q);
-            //TODO: do we need this?
-//                if (!transformer.isUseConfIntUdf())
-//                    rs = new ResultSetWrapper(rs, transformed);
+            rs = new VResultSet(rs, transformed);
         } else {
             info("Running the original query...");
             rs = connector.executeQuery(q);
@@ -43,7 +42,7 @@ public class SelectStatement extends ParsedStatement {
         return rs;
     }
 
-    public TokenStreamRewriter getRewriter(){
+    public TokenStreamRewriter getRewriter() {
         return rewriter;
     }
 

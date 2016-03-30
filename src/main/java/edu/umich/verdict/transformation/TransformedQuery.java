@@ -52,7 +52,7 @@ public class TransformedQuery {
         return aggr;
     }
 
-    public int getOriginalCols() {
+    public int getOriginalColumnsCount() {
         return originalCols;
     }
 
@@ -64,7 +64,7 @@ public class TransformedQuery {
         return aggregates;
     }
 
-    public int getBootstrapRepeats() {
+    public int getBootstrapTrials() {
         return bootstrapRepeats;
     }
 

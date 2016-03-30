@@ -23,7 +23,14 @@ public class MetaDataManager {
     public MetaDataManager(DbConnector connector) throws SQLException {
         this.connector = connector;
         this.dbmsMetaData = connector.getConnection().getMetaData();
+
+        setupMetaDataDatabase();
         loadSamples();
+    }
+
+    private void setupMetaDataDatabase() throws SQLException {
+        executeStatement("create database if not exists " + METADATA_DATABASE);
+        executeStatement("create table if not exists " + METADATA_DATABASE + ".sample  (name string, table_name string, last_update timestamp, comp_ratio double, row_count bigint, poisson_cols int)");
     }
 
     protected boolean executeStatement(String q) throws SQLException {
@@ -121,7 +128,7 @@ public class MetaDataManager {
     private void saveSampleInfo(Sample sample) throws SQLException {
         String q;
         if (sample instanceof StratifiedSample)
-            q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + ((StratifiedSample)sample).getStrataColumnsString() + "')";
+            q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + ((StratifiedSample) sample).getStrataColumnsString() + "')";
         else
             q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(0 as boolean), '')";
         executeStatement(q);
@@ -137,10 +144,6 @@ public class MetaDataManager {
     }
 
     public void loadSamples() throws SQLException {
-        String createTable = "create table if not exists " + METADATA_DATABASE + ".sample " +
-                "(name string, table_name string, last_update timestamp, comp_ratio double, row_count bigint, poisson_cols int)";
-        executeStatement(createTable);
-
         ResultSet rs = executeQuery("select * from " + METADATA_DATABASE + ".sample");
         ArrayList<Sample> res = new ArrayList<>();
         while (rs.next()) {

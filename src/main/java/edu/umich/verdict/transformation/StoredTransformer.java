@@ -12,16 +12,12 @@ public class StoredTransformer extends QueryTransformer {
 
     @Override
     protected String getBootstrapTrials(SelectListItem item) {
-        StringBuilder buf = new StringBuilder();
         if (transformed.getSample().getPoissonColumns() < bootstrapTrials) {
             int requestedTrials = bootstrapTrials;
             bootstrapTrials = transformed.getSample().getPoissonColumns();
             System.err.println("WARNING: Selected sample has just " + bootstrapTrials + " Poisson number columns, however bootstrap.trials is set to " + requestedTrials + " which is more than available Poisson number columns. Performing " + bootstrapTrials + " bootstrap trials...");
         }
-        for (int i = 0; i < bootstrapTrials; i++)
-            buf.append(getTrialExpression(item, i + 1)).append(", ");
-        buf.replace(buf.length() - 2, buf.length(), "");
-        return buf.toString();
+        return super.getBootstrapTrials(item);
     }
 
     @Override

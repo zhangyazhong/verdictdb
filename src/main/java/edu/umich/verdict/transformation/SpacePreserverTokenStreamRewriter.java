@@ -5,7 +5,6 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.misc.Interval;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
