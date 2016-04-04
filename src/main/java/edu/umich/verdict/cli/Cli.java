@@ -87,18 +87,15 @@ public class Cli {
     }
 
     private void setShutDown() {
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    System.out.println();
-                    System.out.println("Closing database connections...");
-                    connector.close();
-                    System.out.println("Goodbye!");
-                } catch (SQLException e) {
-                    System.err.println("Error while trying to close database connections: ");
-                    e.printStackTrace();
-                }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                System.out.println();
+                System.out.println("Closing database connections...");
+                connector.close();
+                System.out.println("Goodbye!");
+            } catch (SQLException e) {
+                System.err.println("Error while trying to close db connections: ");
+                e.printStackTrace();
             }
         }));
     }
@@ -116,15 +113,12 @@ public class Cli {
         try {
             PersistentHistory history = new FileHistory(new File(HISTORYFILE));
             reader.setHistory(history);
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        ((FileHistory) reader.getHistory()).flush();
-                    } catch (IOException e) {
-                        System.err.println("WARNING: Failed to save command history:");
-                        System.err.println(e.getMessage());
-                    }
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    ((FileHistory) reader.getHistory()).flush();
+                } catch (IOException e) {
+                    System.err.println("WARNING: Failed to save command history:");
+                    System.err.println(e.getMessage());
                 }
             }));
         } catch (Exception e) {
