@@ -41,7 +41,10 @@ public class Configuration {
     }
 
     public boolean getBoolean(String key) {
-        String val = get(key).toLowerCase();
+        String val = get(key);
+        if (val == null)
+            return false;
+        val = val.toLowerCase();
         return val.equals("on") || val.equals("yes") || val.equals("true") || val.equals("1");
     }
 

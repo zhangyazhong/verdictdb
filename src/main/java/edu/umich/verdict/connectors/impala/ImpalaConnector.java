@@ -10,6 +10,7 @@ import java.sql.SQLException;
 
 public class ImpalaConnector extends DbConnector {
     private HiveConnector hiveConnector;
+    private String udfBinHdfs;
 
     public ImpalaConnector(Configuration conf) throws SQLException, ClassNotFoundException, InvalidConfigurationException {
         super(conf);
@@ -18,7 +19,12 @@ public class ImpalaConnector extends DbConnector {
     @Override
     protected void initialize(Configuration conf) throws InvalidConfigurationException {
         super.initialize(conf);
+        udfBinHdfs = conf.get("udf_bin_hdfs");
+        if (udfBinHdfs == null) {
+            throw new InvalidConfigurationException("Configuration udf_bin_hdfs is not set.");
+        }
         try {
+            conf.set("hive.for_impala", "true");
             hiveConnector = new HiveConnector(conf);
         } catch (Exception e) {
             //TODO: logger
@@ -29,7 +35,9 @@ public class ImpalaConnector extends DbConnector {
 
     @Override
     protected MetaDataManager createMetaDataManager() throws SQLException {
-        return new ImpalaMetaDataManager(this, hiveConnector);
+        MetaDataManager metaDataManager = new ImpalaMetaDataManager(this, hiveConnector, udfBinHdfs);
+        metaDataManager.initialize();
+        return metaDataManager;
     }
 
     @Override

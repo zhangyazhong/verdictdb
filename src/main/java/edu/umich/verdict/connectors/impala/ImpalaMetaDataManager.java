@@ -10,10 +10,31 @@ import java.sql.SQLException;
 
 public class ImpalaMetaDataManager extends MetaDataManager {
     private HiveConnector hiveConnector;
+    private final String udfBinHdfs;
 
-    public ImpalaMetaDataManager(DbConnector connector, HiveConnector hiveConnector) throws SQLException {
+    public ImpalaMetaDataManager(DbConnector connector, HiveConnector hiveConnector, String udfBinHdfs) throws SQLException {
         super(connector);
+        this.udfBinHdfs = udfBinHdfs;
         this.hiveConnector = hiveConnector;
+    }
+
+    protected void setupMetaDataDatabase() throws SQLException {
+        super.setupMetaDataDatabase();
+
+        try {
+            executeQuery("select " + METADATA_DATABASE + ".poisson(1)");
+        } catch (SQLException e) {
+            System.out.println("Installing UDFs...");
+            String lib = udfBinHdfs + "/verdict-impala-udf.so";
+            String initStatements = "drop function if exists verdict.poisson(int); create function verdict.poisson (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
+                    "drop aggregate function if exists verdict.poisson_count(int); create aggregate function verdict.poisson_count(int) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                    "drop aggregate function if exists verdict.poisson_sum(int, int); create aggregate function verdict.poisson_sum(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
+                    "drop aggregate function if exists verdict.poisson_sum(int, double); create aggregate function verdict.poisson_sum(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
+                    "drop aggregate function if exists verdict.poisson_avg(int, double); create aggregate function verdict.poisson_avg(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
+            for (String q : initStatements.split(";"))
+                if (!q.trim().isEmpty())
+                    executeStatement(q);
+        }
     }
 
     protected String createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {

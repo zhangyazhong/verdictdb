@@ -23,12 +23,14 @@ public class MetaDataManager {
     public MetaDataManager(DbConnector connector) throws SQLException {
         this.connector = connector;
         this.dbmsMetaData = connector.getConnection().getMetaData();
+    }
 
+    public void initialize() throws SQLException {
         setupMetaDataDatabase();
         loadSamples();
     }
 
-    private void setupMetaDataDatabase() throws SQLException {
+    protected void setupMetaDataDatabase() throws SQLException {
         executeStatement("create database if not exists " + METADATA_DATABASE);
         executeStatement("create table if not exists " + METADATA_DATABASE + ".sample  (name string, table_name string, last_update timestamp, comp_ratio double, row_count bigint, poisson_cols int)");
     }
