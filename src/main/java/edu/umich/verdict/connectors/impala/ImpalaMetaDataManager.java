@@ -27,7 +27,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
             System.out.println("Installing UDFs...");
             String lib = udfBinHdfs + "/verdict-impala-udf.so";
             String initStatements = "drop function if exists verdict.poisson(int); create function verdict.poisson (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
-                    "drop aggregate function if exists verdict.poisson_count(int); create aggregate function verdict.poisson_count(int) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                    "drop aggregate function if exists verdict.poisson_count(int, double); create aggregate function verdict.poisson_count(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
                     "drop aggregate function if exists verdict.poisson_sum(int, int); create aggregate function verdict.poisson_sum(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
                     "drop aggregate function if exists verdict.poisson_sum(int, double); create aggregate function verdict.poisson_sum(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
                     "drop aggregate function if exists verdict.poisson_avg(int, double); create aggregate function verdict.poisson_avg(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
