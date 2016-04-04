@@ -23,8 +23,7 @@ public class UdaTransformer extends QueryTransformer {
     }
 
     private String getUda(SelectListItem item) {
-        //TODO: better names
-        return "verdict.my_" + item.getAggregateType().toString().toLowerCase();
+        return "verdict.poisson_" + item.getAggregateType().toString().toLowerCase();
     }
 
 }

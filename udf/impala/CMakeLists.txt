@@ -1,4 +1,4 @@
-﻿# Copyright 2012 Cloudera Inc.
+﻿﻿# Copyright 2012 Cloudera Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,13 +40,9 @@ function(COMPILE_TO_IR SRC_FILE)
 endfunction(COMPILE_TO_IR)
 
 # Build the UDA/UDFs into a shared library.
-add_library(poisson_udf SHARED poisson_udf.cc)
-add_library(confInterval_udf SHARED confidenceInterval_udf.cc)
-add_library(verdict_uda SHARED verdict_uda.cc)
+add_library(verdict-impala-udf SHARED verdict-impala-udf.cc)
 
 # Custom targest to cross compile UDA/UDF to ir
 if (CLANG_EXECUTABLE)
-  COMPILE_TO_IR(poisson_udf.cc )
-  COMPILE_TO_IR(confidenceInterval_udf.cc )
-  COMPILE_TO_IR(verdict_uda.cc )
+  COMPILE_TO_IR(verdict-impala-udf.cc)
 endif(CLANG_EXECUTABLE)
