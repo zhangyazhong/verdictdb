@@ -13,7 +13,7 @@ Verdict supports both uniform and stratified samples. It uses the bootstrap meth
 ### Requirements
 Before you can install and run Verdict, the following requirements should be installed:
 - JDK 1.8+ (Please make sure that $JAVA_HOME is set.)
-- One of the supported DBMSs (Hive or Impala)
+- One of the supported DBMSs (Hive 1.2+ or Impala 2.3+)
 
 
 To install verdict you need to first clone the repository and build the project using SBT as follows. (
