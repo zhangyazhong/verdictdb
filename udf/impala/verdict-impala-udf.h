@@ -1,4 +1,4 @@
-﻿#ifndef VERDICT_IMPALA_UDF_H
+#ifndef VERDICT_IMPALA_UDF_H
 #define VERDICT_IMPALA_UDF_H
 
 #include <impala_udf/udf.h>
@@ -8,16 +8,16 @@ using namespace impala_udf;
 TinyIntVal Poisson(FunctionContext* context, const IntVal& index);
 
 void CountInit(FunctionContext* context, BigIntVal* val);
-void CountUpdate(FunctionContext* context, const IntVal& seed, BigIntVal* val);
+void CountUpdate(FunctionContext* context, const IntVal& seed, const DoubleVal& input, BigIntVal* val);
 void CountMerge(FunctionContext* context, const BigIntVal& src, BigIntVal* dst);
 BigIntVal CountFinalize(FunctionContext* context, const BigIntVal& val);
 
-void SumInit(FunctionContext* context, BufferVal* val);
+void SumInit(FunctionContext* context, BigIntVal* val);
 void SumUpdate(FunctionContext* context, const IntVal& seed, const IntVal& input, BigIntVal* val);
 void SumMerge(FunctionContext* context, const BigIntVal& src, BigIntVal* dst);
 BigIntVal SumFinalize(FunctionContext* context, const BigIntVal& val);
 
-void SumInit(FunctionContext* context, BufferVal* val);
+void SumInit(FunctionContext* context, DoubleVal* val);
 void SumUpdate(FunctionContext* context, const IntVal& seed, const DoubleVal& input, DoubleVal* val);
 void SumMerge(FunctionContext* context, const DoubleVal& src, DoubleVal* dst);
 DoubleVal SumFinalize(FunctionContext* context, const DoubleVal& val);

@@ -32,7 +32,7 @@ public class MetaDataManager {
 
     protected void setupMetaDataDatabase() throws SQLException {
         executeStatement("create database if not exists " + METADATA_DATABASE);
-        executeStatement("create table if not exists " + METADATA_DATABASE + ".sample  (name string, table_name string, last_update timestamp, comp_ratio double, row_count bigint, poisson_cols int)");
+        executeStatement("create table if not exists " + METADATA_DATABASE + ".sample  (name string, table_name string, last_update timestamp, comp_ratio double, row_count bigint, poisson_cols int, stratified boolean, strata_cols string)");
     }
 
     protected boolean executeStatement(String q) throws SQLException {

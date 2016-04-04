@@ -94,7 +94,7 @@ public class Cli {
                 connector.close();
                 System.out.println("Goodbye!");
             } catch (SQLException e) {
-                System.err.println("Error while trying to close db connections: ");
+                System.err.println("Error while trying to close database connections: ");
                 e.printStackTrace();
             }
         }));

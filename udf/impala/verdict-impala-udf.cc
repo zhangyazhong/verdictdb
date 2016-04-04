@@ -1,4 +1,4 @@
-﻿#include "verdict-impala-udf.h"
+#include "verdict-impala-udf.h"
 
 #include <cctype>
 #include <cmath>
@@ -50,7 +50,7 @@ TinyIntVal Poisson(FunctionContext* context, const IntVal& index) {
 
 
 /*
-COUNT(seed)
+COUNT(seed, val)
 */
 
 void CountInit(FunctionContext* context, BigIntVal* val) {
@@ -58,7 +58,8 @@ void CountInit(FunctionContext* context, BigIntVal* val) {
   val->val = 0;
 }
 
-void CountUpdate(FunctionContext* context, const IntVal& seed, BigIntVal* val) {
+void CountUpdate(FunctionContext* context, const IntVal& seed, const DoubleVal& input, BigIntVal* val) {
+  if (input.is_null) return;
   val->val += poisson();
 }
 
