@@ -52,7 +52,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
             buf.append(",").append(s);
         buf.delete(0, 1);
         String cols = buf.toString();
-        System.out.println("Creating sample with Hive... (This can take minutes)");
+        System.out.println("Creating sample using Hive... (This can take minutes)");
         hiveConnector.executeStatement("create table " + tmp2 + " as select " + cols + " from (select " + cols + ", rank() over (partition by " + strataCols + " order by rand()) as rnk from " + sample.getTableName() + ") s where rnk <= " + groupLimit + "");
         executeStatement("invalidate metadata");
         executeStatement("drop table if exists " + tmp3);

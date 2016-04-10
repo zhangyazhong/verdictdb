@@ -164,7 +164,16 @@ public class MetaDataManager {
     }
 
     public ResultSet getSamplesInfo(String type, String table) throws SQLException {
-        return executeQuery("select name, table_name as `original table name`, round(comp_ratio*100,3) as `size (%)`, row_count as `rows`, cast(poisson_cols as string) as `poission columns`, cast(stratified as string) as `stratified`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample order by name");
+        StringBuilder buf = new StringBuilder();
+        buf.append("select name, table_name as `original table name`, round(comp_ratio*100,3) as `size (%)`, row_count as `rows`, cast(poisson_cols as string) as `poission columns`, cast(stratified as string) as `stratified`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample where true ");
+        if(type.equals("uniform"))
+            buf.append(" and stratified<>true");
+        if(type.equals("stratified"))
+            buf.append(" and stratified=true");
+        if(table!=null)
+            buf.append(" and table_name='").append(table).append("' ");
+        buf.append(" order by name");
+        return executeQuery(buf.toString());
     }
 
     public void deleteSample(String name) throws SQLException {
