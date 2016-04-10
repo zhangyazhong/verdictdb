@@ -160,7 +160,14 @@ public class MetaDataManager {
     public long getTableSize(String name) throws SQLException {
         ResultSet rs = executeQuery("show table stats " + name);
         rs.next();
-        return rs.getLong(1);
+        long size = rs.getLong(1);
+        if(size==-1) {
+            computeTableStats(name);
+            rs = executeQuery("show table stats " + name);
+            rs.next();
+            size = rs.getLong(1);
+        }
+        return size;
     }
 
     public ResultSet getSamplesInfo(String type, String table) throws SQLException {

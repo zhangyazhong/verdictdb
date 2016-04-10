@@ -70,4 +70,8 @@ public class Sample {
     public void setPoissonColumns(int poissonColumns) {
         this.poissonColumns = poissonColumns;
     }
+
+    public long getTableSize() {
+        return (long) (this.getRowCount() * (1 / this.getCompRatio()));
+    }
 }

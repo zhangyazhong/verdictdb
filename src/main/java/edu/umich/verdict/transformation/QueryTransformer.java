@@ -108,31 +108,9 @@ public abstract class QueryTransformer {
     }
 
     protected boolean replaceTableNames() {
-        q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
-            public Void visitTable_source_item(TsqlParser.Table_source_itemContext ctx) {
-                if (transformed.getSample() != null)
-                    // already replaced a sample
-                    return null;
-                if (ctx.table_name_with_hint() == null)
-                    // table_source_item is a sub-query or something else (not a table reference)
-                    return null;
-                TsqlParser.Table_nameContext nameCtx = ctx.table_name_with_hint().table_name();
-                Sample sample = getSample(nameCtx.getText());
-                if (sample != null) {
-                    if (ctx.as_table_alias() == null) {
-                        // if there is no alias, we add an alias equal to the original table name to eliminate side-effects of this change in other parts of the query
-                        rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample) + " AS " + nameCtx.table.getText());
-                        sampleAlias = nameCtx.table.getText();
-                    } else {
-                        rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample));
-                        sampleAlias = ctx.as_table_alias().table_alias().getText();
-                    }
-                    transformed.setSample(sample);
-                }
-                return null;
-            }
-        });
-        return transformed.getSample() != null;
+        TableReplacer replacer = new TableReplacer();
+        q.getParseTree().accept(replacer);
+        return replacer.replace();
     }
 
     protected Sample getSample(String tableName) {
@@ -406,6 +384,42 @@ public abstract class QueryTransformer {
 
         public boolean isForExpression(String expr) {
             return this.expr.equals(expr) || this.getOriginalAlias().equals(expr);
+        }
+    }
+
+    private class TableReplacer extends TsqlBaseVisitor<Void> {
+        private TsqlParser.Table_source_itemContext sourceTableCtx;
+
+        public Void visitTable_source_item(TsqlParser.Table_source_itemContext ctx) {
+            if (ctx.table_name_with_hint() == null)
+                // table_source_item is a sub-query or something else (not a table reference)
+                return null;
+            Sample sample = getSample(ctx.table_name_with_hint().table_name().getText());
+            if (sample != null) {
+                if (transformed.getSample() != null && transformed.getSample().getTableSize() >= sample.getTableSize())
+                    // already found a sample for a bigger table
+                    return null;
+                sourceTableCtx = ctx;
+                transformed.setSample(sample);
+            }
+            return null;
+        }
+
+        public boolean replace() {
+            Sample sample = transformed.getSample();
+            if (sample != null) {
+                TsqlParser.Table_nameContext nameCtx = sourceTableCtx.table_name_with_hint().table_name();
+                if (sourceTableCtx.as_table_alias() == null) {
+                    // if there is no alias, we add an alias equal to the original table name to eliminate side-effects of this change in other parts of the query
+                    rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample) + " AS " + nameCtx.table.getText());
+                    sampleAlias = nameCtx.table.getText();
+                } else {
+                    rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample));
+                    sampleAlias = sourceTableCtx.as_table_alias().table_alias().getText();
+                }
+                return true;
+            }
+            return false;
         }
     }
 }
