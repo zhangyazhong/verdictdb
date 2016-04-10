@@ -1,6 +1,7 @@
 package edu.umich.verdict.cli;
 
 import edu.umich.verdict.Configuration;
+import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.processing.ParsedStatement;
 import edu.umich.verdict.transformation.Parser;
@@ -40,7 +41,7 @@ public class RunningResults {
 
     public void printResults(PrintWriter out) {
         if (failed) {
-            if (ex instanceof SQLException) {
+            if (ex instanceof SQLException || ex instanceof InvalidConfigurationException) {
                 System.err.print("Error: ");
                 System.err.println(ex.getMessage());
             } else

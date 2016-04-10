@@ -1,6 +1,7 @@
 package edu.umich.verdict.processing;
 
 import edu.umich.verdict.Configuration;
+import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.parser.TsqlParser;
 import org.antlr.v4.runtime.TokenStreamRewriter;
@@ -25,7 +26,9 @@ public class ConfigStatement extends ParsedStatement {
     }
 
     @Override
-    public ResultSet run(Configuration conf, DbConnector connector) {
+    public ResultSet run(Configuration conf, DbConnector connector) throws InvalidConfigurationException {
+        if (!isValidKey(key))
+            throw new InvalidConfigurationException("'" + key + "' is not a valid option.");
         if (value == null) {
             String val = conf.get(key);
             info(key + ": " + (val == null ? "NULL" : val));
@@ -33,5 +36,9 @@ public class ConfigStatement extends ParsedStatement {
             conf.set(key, value);
         }
         return null;
+    }
+
+    private boolean isValidKey(String key) {
+        return key.startsWith("bootstrap.");
     }
 }
