@@ -6,19 +6,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Objects;
 
 class ExtraColumnsHandler {
     private final ResultSet originalResultSet;
     private final TransformedQuery q;
     private final int originalCount;
     private final int aggregatesCount;
-    //TODO: add variance and error percentage
-    private final boolean showIntervals;
-    private final boolean showErrors;
+    private final boolean showIntervals, showErrors, showErrorPercentages, showVariances;
     private final ConfidenceInterval[] intervals;
-    private final double[] errors;
+    private final double[] errors, errorPercentages, variances;
     private boolean areValuesValid = false;
     private final int extraColumnsPerAggregate;
+    private final ExtraColumnType[] extraColumnsTypes;
 
     public ExtraColumnsHandler(ResultSet rs, TransformedQuery q) {
         this.originalResultSet = rs;
@@ -26,13 +26,33 @@ class ExtraColumnsHandler {
         this.originalCount = q.getOriginalColumnsCount();
 
         showIntervals = true;
+        showVariances = true;
         showErrors = false;
+        showErrorPercentages = false;
+        extraColumnsPerAggregate = (showIntervals ? 1 : 0) + (showErrors ? 1 : 0) + (showVariances ? 1 : 0);
+        extraColumnsTypes = new ExtraColumnType[extraColumnsPerAggregate];
+
+        int i = 0;
+        if (showIntervals) {
+            extraColumnsTypes[i] = ExtraColumnType.ConfidenceInterval;
+            i++;
+        }
+        if (showErrors) {
+            extraColumnsTypes[i] = ExtraColumnType.Error;
+            i++;
+        }
+        if (showErrorPercentages) {
+            extraColumnsTypes[i] = ExtraColumnType.ErrorPercentage;
+            i++;
+        }
+        if (showVariances)
+            extraColumnsTypes[i] = ExtraColumnType.Variance;
+
         aggregatesCount = q.getAggregates().size();
-
-        intervals = new ConfidenceInterval[q.getAggregates().size()];
-        errors = new double[q.getAggregates().size()];
-
-        extraColumnsPerAggregate = (showIntervals ? 1 : 0) + (showErrors ? 1 : 0);
+        intervals = showIntervals ? new ConfidenceInterval[aggregatesCount] : null;
+        errors = showErrors ? new double[aggregatesCount] : null;
+        errorPercentages = showErrorPercentages ? new double[aggregatesCount] : null;
+        variances = showVariances ? new double[aggregatesCount] : null;
     }
 
     public void updateValues() throws SQLException {
@@ -45,19 +65,56 @@ class ExtraColumnsHandler {
             for (int i = 0; i < trials; i++)
                 bootstrapResults[i] = originalResultSet.getDouble(i + baseIndex);
             baseIndex += trials;
-            Arrays.sort(bootstrapResults);
-            double estimatedAnswer = originalResultSet.getDouble(aggr.getColumn());
-            ConfidenceInterval confidenceInterval = new ConfidenceInterval(estimatedAnswer, bootstrapResults, trials, margin);
-            if (showIntervals)
-                intervals[j] = confidenceInterval;
-            if (showErrors)
-                errors[j] = Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer));
+            if (showIntervals || showErrors) {
+                Arrays.sort(bootstrapResults);
+                double estimatedAnswer = originalResultSet.getDouble(aggr.getColumn());
+                ConfidenceInterval confidenceInterval = new ConfidenceInterval(estimatedAnswer, bootstrapResults, trials, margin);
+                if (showIntervals)
+                    intervals[j] = confidenceInterval;
+                if (showErrors)
+                    errors[j] = Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer));
+                if (showErrorPercentages)
+                    errorPercentages[j] = 100 * Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer)) / estimatedAnswer;
+            }
+            if (showVariances) {
+                variances[j] = getVariance(bootstrapResults);
+            }
         }
         areValuesValid = true;
     }
 
+    double getMean(double[] data) {
+        double sum = 0.0;
+        for (double a : data)
+            sum += a;
+        return sum / data.length;
+    }
+
+    double getVariance(double[] data) {
+        double mean = getMean(data);
+        double temp = 0;
+        for (double a : data)
+            temp += (mean - a) * (mean - a);
+        return temp / data.length;
+    }
+
+    private Object getValue(int i) {
+        switch (extraColumnsTypes[i % extraColumnsPerAggregate]) {
+            case ConfidenceInterval:
+                return intervals[i / extraColumnsPerAggregate].toString();
+            case Error:
+                return errors[i / extraColumnsPerAggregate] + "";
+            case ErrorPercentage:
+                return errorPercentages[i / extraColumnsPerAggregate] + "%";
+            case Variance:
+                return variances[i / extraColumnsPerAggregate] + "";
+            default:
+                return null;
+        }
+    }
+
     private String getInterval(int i) {
-        return intervals[i / extraColumnsPerAggregate].toString();
+        return intervals[i].toString();
     }
 
     private double getError(int i) {
@@ -81,7 +138,21 @@ class ExtraColumnsHandler {
     }
 
     public String getLabel(int column) {
-        return "c_" + column;
+        column = column - originalCount - 1;
+        int i=column/extraColumnsPerAggregate;
+        int aggregateColumn = q.getAggregates().get(i).getColumn();
+        switch (extraColumnsTypes[column % extraColumnsPerAggregate]) {
+            case ConfidenceInterval:
+                return "ci_"+aggregateColumn;
+            case Error:
+                return "e_"+aggregateColumn;
+            case ErrorPercentage:
+                return "e%_"+aggregateColumn;
+            case Variance:
+                return "v_"+aggregateColumn;
+            default:
+                return null;
+        }
     }
 
     public int getPrecision(int column) {
@@ -113,7 +184,7 @@ class ExtraColumnsHandler {
         //TODO: complete
         if (!areValuesValid)
             updateValues();
-        return getInterval(column - originalCount - 1);
+        return getValue(column - originalCount - 1);
     }
 
     public void invalidateValues() {
@@ -133,4 +204,12 @@ class ConfidenceInterval {
     public String toString() {
         return "[" + start + ", " + end + "]";
     }
+}
+
+
+enum ExtraColumnType {
+    ConfidenceInterval,
+    Error,
+    ErrorPercentage,
+    Variance
 }
