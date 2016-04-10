@@ -43,6 +43,7 @@ The value of this options can also be changed during running verdict using comma
 |`bootstrap.confidence`|`95%`   |A percentage that determines the confidence level for reporting the confidence interval (error estimation). For example when it is set to 95%, it means that Verdict is 95% confident that the true answer for the query is in the provided bound.|
 |`bootstrap.sample_size`|`1%`   |A percentage that determines the preferred size for the sample (relative to the actual table) used for running approximate query. Choosing a small sample makes your queries faster but with higher error. When multiple samples are present for a table, Verdict tries to use the sample which size is closest to this value.|
 |`bootstrap.sample_type`|`uniform`   |This option tells Verdict what kind of sample (`uniform` or `stratified`) do you prefer to run your query on. If both kind of samples are present for a table, Verdict tries to chose the one that is the kind specified in this option.|
+|`bootstrap.extra_columns`|`ci`     | This options tells Verdict to generate what extra columns for error estimation in the query results. You can specify any combination of the following: confidence intervals (`ci`), error bound (`e`), error bound percentage (`ep`) and variance (`v`). To specify more than one, seperate them with `_`, for example using value `ci_ep` will generate two more columns for each aggregate expression in the result set, one for confidence intervals and one for error bound percentages.
 
 
 ### Configurations for Impala 

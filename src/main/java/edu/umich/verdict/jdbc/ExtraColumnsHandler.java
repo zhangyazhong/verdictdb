@@ -1,5 +1,7 @@
 package edu.umich.verdict.jdbc;
 
+import edu.umich.verdict.Configuration;
+import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.transformation.TransformedQuery;
 
 import java.sql.ResultSet;
@@ -13,40 +15,43 @@ class ExtraColumnsHandler {
     private final TransformedQuery q;
     private final int originalCount;
     private final int aggregatesCount;
-    private final boolean showIntervals, showErrors, showErrorPercentages, showVariances;
+    private boolean showIntervals = false, showErrors = false, showErrorPercentages = false, showVariances = false;
     private final ConfidenceInterval[] intervals;
     private final double[] errors, errorPercentages, variances;
     private boolean areValuesValid = false;
     private final int extraColumnsPerAggregate;
     private final ExtraColumnType[] extraColumnsTypes;
 
-    public ExtraColumnsHandler(ResultSet rs, TransformedQuery q) {
+    public ExtraColumnsHandler(ResultSet rs, TransformedQuery q, Configuration conf) throws InvalidConfigurationException {
         this.originalResultSet = rs;
         this.q = q;
         this.originalCount = q.getOriginalColumnsCount();
 
-        showIntervals = true;
-        showVariances = true;
-        showErrors = false;
-        showErrorPercentages = false;
-        extraColumnsPerAggregate = (showIntervals ? 1 : 0) + (showErrors ? 1 : 0) + (showVariances ? 1 : 0);
+        String[] extraColumns = conf.get("bootstrap.extra_columns").split("_");
+        extraColumnsPerAggregate = extraColumns.length;
         extraColumnsTypes = new ExtraColumnType[extraColumnsPerAggregate];
-
-        int i = 0;
-        if (showIntervals) {
-            extraColumnsTypes[i] = ExtraColumnType.ConfidenceInterval;
-            i++;
+        for (int i = 0; i < extraColumnsPerAggregate; i++) {
+            switch (extraColumns[i]) {
+                case "ci":
+                    extraColumnsTypes[i] = ExtraColumnType.ConfidenceInterval;
+                    showIntervals = true;
+                    break;
+                case "e":
+                    extraColumnsTypes[i] = ExtraColumnType.Error;
+                    showErrors = true;
+                    break;
+                case "ep":
+                    extraColumnsTypes[i] = ExtraColumnType.ErrorPercentage;
+                    showErrorPercentages = true;
+                    break;
+                case "v":
+                    extraColumnsTypes[i] = ExtraColumnType.Variance;
+                    showVariances = true;
+                    break;
+                default:
+                    throw new InvalidConfigurationException("Invalid value for 'bootstrap.extra_columns': " + extraColumns[i]);
+            }
         }
-        if (showErrors) {
-            extraColumnsTypes[i] = ExtraColumnType.Error;
-            i++;
-        }
-        if (showErrorPercentages) {
-            extraColumnsTypes[i] = ExtraColumnType.ErrorPercentage;
-            i++;
-        }
-        if (showVariances)
-            extraColumnsTypes[i] = ExtraColumnType.Variance;
 
         aggregatesCount = q.getAggregates().size();
         intervals = showIntervals ? new ConfidenceInterval[aggregatesCount] : null;
@@ -74,7 +79,7 @@ class ExtraColumnsHandler {
                 if (showErrors)
                     errors[j] = Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer));
                 if (showErrorPercentages)
-                    errorPercentages[j] = 100 * Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer)) / estimatedAnswer;
+                    errorPercentages[j] = 100 * Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer)) / Math.abs(estimatedAnswer);
             }
             if (showVariances) {
                 variances[j] = getVariance(bootstrapResults);
@@ -139,17 +144,17 @@ class ExtraColumnsHandler {
 
     public String getLabel(int column) {
         column = column - originalCount - 1;
-        int i=column/extraColumnsPerAggregate;
+        int i = column / extraColumnsPerAggregate;
         int aggregateColumn = q.getAggregates().get(i).getColumn();
         switch (extraColumnsTypes[column % extraColumnsPerAggregate]) {
             case ConfidenceInterval:
-                return "ci_"+aggregateColumn;
+                return "ci_" + aggregateColumn;
             case Error:
-                return "e_"+aggregateColumn;
+                return "e_" + aggregateColumn;
             case ErrorPercentage:
-                return "e%_"+aggregateColumn;
+                return "ep_" + aggregateColumn;
             case Variance:
-                return "v_"+aggregateColumn;
+                return "v_" + aggregateColumn;
             default:
                 return null;
         }

@@ -1,5 +1,7 @@
 package edu.umich.verdict.jdbc;
 
+import edu.umich.verdict.Configuration;
+import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.transformation.TransformedQuery;
 
 import java.io.InputStream;
@@ -17,9 +19,9 @@ public class VResultSet implements ResultSet {
     private final ResultSet originalResultSet;
     private final int originalColumnCount;
 
-    public VResultSet(ResultSet resultSet, TransformedQuery q) {
+    public VResultSet(ResultSet resultSet, TransformedQuery q, Configuration conf) throws InvalidConfigurationException {
         this.originalResultSet = resultSet;
-        extraColumns = new ExtraColumnsHandler(resultSet, q);
+        extraColumns = new ExtraColumnsHandler(resultSet, q, conf);
         originalColumnCount = q.getOriginalColumnsCount();
     }
 
