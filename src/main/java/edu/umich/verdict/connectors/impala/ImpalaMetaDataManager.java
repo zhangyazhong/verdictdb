@@ -22,6 +22,8 @@ public class ImpalaMetaDataManager extends MetaDataManager {
     protected void setupMetaDataDatabase() throws SQLException {
         super.setupMetaDataDatabase();
 
+        executeStatement("invalidate metadata");
+
         try {
             executeQuery("select " + METADATA_DATABASE + ".poisson(1)");
         } catch (SQLException e) {
@@ -86,7 +88,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         System.out.println("Adding " + sample.getPoissonColumns() + " Poisson random number columns to the sample...");
         StringBuilder buf = new StringBuilder("create table " + getSampleFullName(sample) + " stored as parquet as (select *");
         for (int i = 1; i <= sample.getPoissonColumns(); i++)
-            buf.append("," + METADATA_DATABASE + ".poisson() as v__p").append(i);
+            buf.append("," + METADATA_DATABASE + ".poisson(").append(i).append(") as v__p").append(i);
         buf.append(" from ").append(fromTable).append(")");
         executeStatement(buf.toString());
     }
