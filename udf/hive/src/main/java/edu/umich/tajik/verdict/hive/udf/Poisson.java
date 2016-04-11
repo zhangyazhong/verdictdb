@@ -23,7 +23,7 @@ public class Poisson extends UDF {
     };
     static Random rnd= new Random();
 
-    public byte evaluate(Integer extra){
+    public byte evaluate(Integer seed){
         return evaluate();
     }
 

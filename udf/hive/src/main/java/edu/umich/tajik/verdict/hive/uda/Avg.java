@@ -29,8 +29,9 @@ public final class Avg extends UDAF {
             buffer = new AvgAgg();
         }
 
-        public boolean iterate(Integer extra, Double val) {
-            buffer.add(val);
+        public boolean iterate(Integer seed, Double val) {
+            if (val != null)
+                buffer.add(val);
             return true;
         }
 

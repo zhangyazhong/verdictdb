@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * and in database named 'verdict'. Therefore, a MetaDataManager uses the same instance of DBConnector that is being
  * used for query processing to interact with the underlying DBMS.
  */
-public class MetaDataManager {
+public abstract class MetaDataManager {
     public static final String METADATA_DATABASE = "verdict";
     protected ArrayList<Sample> samples = new ArrayList<>();
     protected DbConnector connector;
@@ -51,14 +51,10 @@ public class MetaDataManager {
             if (s.getName().equals(sample.getName()))
                 throw new SQLException("A sample with this name is already present.");
         long tableSize = getTableSize(sample.getTableName());
-        String tmpName;
         if (sample instanceof StratifiedSample)
-            tmpName = createStratifiedSample((StratifiedSample) sample, tableSize);
+            createStratifiedSample((StratifiedSample) sample, tableSize);
         else
-            tmpName = createUniformSample(sample);
-        executeStatement("invalidate metadata");
-        addPoissonCols(sample, tmpName);
-        executeStatement("drop table if exists " + tmpName);
+            createUniformSample(sample);
         computeSampleStats(sample);
         sample.setRowCount(getTableSize(getSampleFullName(sample)));
         sample.setCompRatio((double) sample.getRowCount() / tableSize);
@@ -67,67 +63,19 @@ public class MetaDataManager {
     }
 
     //TODO: General implementation
-    protected String createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {
-        String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3";
-        executeStatement("drop table if exists " + tmp1);
-        String strataCols = sample.getStrataColumnsString();
-        System.out.println("Collecting strata stats...");
-        executeStatement("create table  " + tmp1 + " as (select " + strataCols + ", count(*) as cnt from " + sample.getTableName() + " group by " + strataCols + ")");
-        computeTableStats(tmp1);
-        long groups = getTableSize(tmp1);
-        //TODO: don't continue if groupLimit is too small
-        long groupLimit = (long) ((tableSize * sample.getCompRatio()) / groups);
-        executeStatement("drop table if exists " + tmp2);
-        StringBuilder buf = new StringBuilder();
-        for (String s : getTableCols(sample.getTableName()))
-            buf.append(",").append(s);
-        buf.delete(0, 1);
-        String cols = buf.toString();
-        System.out.println("Creating sample with Hive... (This can take minutes)");
-        executeStatement("create table " + tmp2 + " as select " + cols + " from (select " + cols + ", rank() over (partition by " + strataCols + " order by rand()) as rnk from " + sample.getTableName() + ") s where rnk <= " + groupLimit + "");
-        executeStatement("invalidate metadata");
-        executeStatement("drop table if exists " + tmp3);
-        executeStatement("create table  " + tmp3 + " as (select " + strataCols + ", count(*) as cnt from " + tmp2 + " group by " + strataCols + ")");
-        String joinConds = sample.getJoinCond("s", "t");
-        System.out.println("Calculating group weights...");
-        //ratio = (# of tuples in table)/(# of tupples in sample) for each stratum => useful for COUNT and SUM
-        //weight = (# of stratum tuples in table)/(table size) => useful for AVG
-        executeStatement("create table " + getWeightsTable(sample) + " as (select s." + strataCols.replaceAll(",", ",s.") + ", t.cnt/s.cnt as ratio, t.cnt/" + tableSize + " as weight from " + tmp1 + " as t join " + tmp3 + " as s on " + joinConds + ")");
-        executeStatement("drop table if exists " + tmp1);
-        executeStatement("drop table if exists " + tmp3);
-        return tmp2;
-    }
+    protected abstract void createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException;
 
     //TODO: General implementation
-    protected String createUniformSample(Sample sample) throws SQLException {
-        long buckets = Math.round(1 / sample.getCompRatio());
-        String tmp1 = METADATA_DATABASE + ".temp_sample";
-        System.out.println("Creating sample with Hive... (This can take minutes)");
-        executeStatement("drop table if exists " + tmp1);
-        String create = "create table " + tmp1 + " as select * from " + sample.getTableName() + " tablesample(bucket 1 out of " + buckets + " on rand())";
-        executeStatement(create);
-        return tmp1;
-    }
+    protected abstract void createUniformSample(Sample sample) throws SQLException;
 
     protected void computeSampleStats(Sample sample) throws SQLException {
         System.out.println("Computing sample stats...");
         computeTableStats(getSampleFullName(sample));
     }
 
-    protected void computeTableStats(String name) throws SQLException {
-        executeStatement("compute stats " + name);
-    }
+    protected abstract void computeTableStats(String name) throws SQLException;
 
-    protected void addPoissonCols(Sample sample, String fromTable) throws SQLException {
-        System.out.println("Adding " + sample.getPoissonColumns() + " Poisson random number columns to the sample...");
-        StringBuilder buf = new StringBuilder("create table " + getSampleFullName(sample) + " stored as parquet as (select *");
-        for (int i = 1; i <= sample.getPoissonColumns(); i++)
-            buf.append("," + METADATA_DATABASE + ".poisson() as v__p").append(i);
-        buf.append(" from ").append(fromTable).append(")");
-        executeStatement(buf.toString());
-    }
-
-    private void saveSampleInfo(Sample sample) throws SQLException {
+    protected void saveSampleInfo(Sample sample) throws SQLException {
         String q;
         if (sample instanceof StratifiedSample)
             q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + ((StratifiedSample) sample).getStrataColumnsString() + "')";
@@ -157,51 +105,23 @@ public class MetaDataManager {
         samples = res;
     }
 
-    public long getTableSize(String name) throws SQLException {
-        ResultSet rs = executeQuery("show table stats " + name);
-        rs.next();
-        long size = rs.getLong(1);
-        if(size==-1) {
-            computeTableStats(name);
-            rs = executeQuery("show table stats " + name);
-            rs.next();
-            size = rs.getLong(1);
-        }
-        return size;
-    }
+    public abstract long getTableSize(String name) throws SQLException;
 
     public ResultSet getSamplesInfo(String type, String table) throws SQLException {
         StringBuilder buf = new StringBuilder();
         buf.append("select name, table_name as `original table name`, round(comp_ratio*100,3) as `size (%)`, row_count as `rows`, cast(poisson_cols as string) as `poission columns`, cast(stratified as string) as `stratified`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample where true ");
-        if(type.equals("uniform"))
+        if (type.equals("uniform"))
             buf.append(" and stratified<>true");
-        if(type.equals("stratified"))
+        if (type.equals("stratified"))
             buf.append(" and stratified=true");
-        if(table!=null)
+        if (table != null)
             buf.append(" and table_name='").append(table).append("' ");
         buf.append(" order by name");
         return executeQuery(buf.toString());
     }
 
-    public void deleteSample(String name) throws SQLException {
-        //TODO: general implementation
-        Sample sample = null;
-        for (Sample s : samples)
-            if (s.getName().equals(name)) {
-                sample = s;
-                break;
-            }
-        if (sample == null)
-            throw new SQLException("No sample with this name exists.");
-        executeStatement("drop table if exists " + getSampleFullName(sample));
-        if (sample instanceof StratifiedSample)
-            executeStatement("drop table if exists " + getWeightsTable((StratifiedSample) sample));
-        executeStatement("drop table if exists " + METADATA_DATABASE + ".oldSample");
-        executeStatement("alter table " + METADATA_DATABASE + ".sample rename to " + METADATA_DATABASE + ".oldSample");
-        executeStatement("create table " + METADATA_DATABASE + ".sample as (select * from " + METADATA_DATABASE + ".oldSample where name <> '" + name + "')");
-        executeStatement("drop table if exists " + METADATA_DATABASE + ".oldSample");
-        samples.remove(sample);
-    }
+    //TODO: general implementation
+    public abstract void deleteSample(String name) throws SQLException;
 
     public String getSampleFullName(Sample sample) {
         return METADATA_DATABASE + ".s_" + sample.getName();

@@ -26,8 +26,9 @@ public final class Count extends UDAF {
             buffer = new CountAgg();
         }
 
-        public boolean iterate(Integer extra) {
-            buffer.add();
+        public boolean iterate(Integer seed, Double val) {
+            if (val != null)
+                buffer.add();
             return true;
         }
 

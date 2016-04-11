@@ -39,6 +39,6 @@ public class ConfigStatement extends ParsedStatement {
     }
 
     private boolean isValidKey(String key) {
-        return key.startsWith("bootstrap.");
+        return key.startsWith("bootstrap");
     }
 }

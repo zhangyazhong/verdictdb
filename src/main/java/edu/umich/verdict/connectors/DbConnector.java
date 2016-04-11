@@ -40,11 +40,7 @@ public abstract class DbConnector {
         }
     }
 
-    protected MetaDataManager createMetaDataManager() throws SQLException {
-        MetaDataManager metaDataManager=new MetaDataManager(this);
-        metaDataManager.initialize();
-        return metaDataManager;
-    }
+    protected abstract MetaDataManager createMetaDataManager() throws SQLException;
 
     protected abstract String getDriverClassPath();
 

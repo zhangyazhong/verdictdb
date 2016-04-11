@@ -27,8 +27,9 @@ public final class Sum extends UDAF {
             buffer = new SumAgg();
         }
 
-        public boolean iterate(Integer extra, Double val) {
-            buffer.add(val);
+        public boolean iterate(Integer seed, Double val) {
+            if (val != null)
+                buffer.add(val);
             return true;
         }
 

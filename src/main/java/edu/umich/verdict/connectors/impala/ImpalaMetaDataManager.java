@@ -6,6 +6,7 @@ import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.models.Sample;
 import edu.umich.verdict.models.StratifiedSample;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class ImpalaMetaDataManager extends MetaDataManager {
@@ -26,18 +27,18 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         } catch (SQLException e) {
             System.out.println("Installing UDFs...");
             String lib = udfBinHdfs + "/verdict-impala-udf.so";
-            String initStatements = "drop function if exists verdict.poisson(int); create function verdict.poisson (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
-                    "drop aggregate function if exists verdict.poisson_count(int, double); create aggregate function verdict.poisson_count(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
-                    "drop aggregate function if exists verdict.poisson_sum(int, int); create aggregate function verdict.poisson_sum(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
-                    "drop aggregate function if exists verdict.poisson_sum(int, double); create aggregate function verdict.poisson_sum(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
-                    "drop aggregate function if exists verdict.poisson_avg(int, double); create aggregate function verdict.poisson_avg(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
+            String initStatements = "drop function if exists " + METADATA_DATABASE + ".poisson(int); create function " + METADATA_DATABASE + ".poisson (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
+                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_count(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_count(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_sum(int, int); create aggregate function " + METADATA_DATABASE + ".poisson_sum(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
+                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_sum(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_sum(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
+                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_avg(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_avg(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
             for (String q : initStatements.split(";"))
                 if (!q.trim().isEmpty())
                     executeStatement(q);
         }
     }
 
-    protected String createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {
+    protected void createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {
         String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3";
         executeStatement("drop table if exists " + tmp1);
         String strataCols = sample.getStrataColumnsString();
@@ -62,17 +63,32 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         executeStatement("create table " + getWeightsTable(sample) + " as (select s." + strataCols.replaceAll(",", ",s.") + ", t.cnt/s.cnt as ratio, t.cnt/" + tableSize + " as weight from " + tmp1 + " as t join " + tmp3 + " as s on " + joinConds + ")");
         executeStatement("drop table if exists " + tmp1);
         executeStatement("drop table if exists " + tmp3);
-        return tmp2;
+        executeStatement("invalidate metadata");
+        addPoissonCols(sample, tmp2);
+        executeStatement("drop table if exists " + tmp2);
+
     }
 
-    protected String createUniformSample(Sample sample) throws SQLException {
+    protected void createUniformSample(Sample sample) throws SQLException {
         long buckets = Math.round(1 / sample.getCompRatio());
         String tmp1 = METADATA_DATABASE + ".temp_sample";
         System.out.println("Creating sample with Hive... (This can take minutes)");
         hiveConnector.executeStatement("drop table if exists " + tmp1);
         String create = "create table " + tmp1 + " as select * from " + sample.getTableName() + " tablesample(bucket 1 out of " + buckets + " on rand())";
         hiveConnector.executeStatement(create);
-        return tmp1;
+        executeStatement("invalidate metadata");
+        addPoissonCols(sample, tmp1);
+        executeStatement("drop table if exists " + tmp1);
+
+    }
+
+    private void addPoissonCols(Sample sample, String fromTable) throws SQLException {
+        System.out.println("Adding " + sample.getPoissonColumns() + " Poisson random number columns to the sample...");
+        StringBuilder buf = new StringBuilder("create table " + getSampleFullName(sample) + " stored as parquet as (select *");
+        for (int i = 1; i <= sample.getPoissonColumns(); i++)
+            buf.append("," + METADATA_DATABASE + ".poisson() as v__p").append(i);
+        buf.append(" from ").append(fromTable).append(")");
+        executeStatement(buf.toString());
     }
 
     public void deleteSample(String name) throws SQLException {
@@ -92,5 +108,24 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         executeStatement("create table " + METADATA_DATABASE + ".sample as (select * from " + METADATA_DATABASE + ".oldSample where name <> '" + name + "')");
         executeStatement("drop table if exists " + METADATA_DATABASE + ".oldSample");
         samples.remove(sample);
+    }
+
+    @Override
+    public long getTableSize(String name) throws SQLException {
+        ResultSet rs = executeQuery("show table stats " + name);
+        rs.next();
+        long size = rs.getLong(1);
+        if(size==-1) {
+            computeTableStats(name);
+            rs = executeQuery("show table stats " + name);
+            rs.next();
+            size = rs.getLong(1);
+        }
+        return size;
+    }
+
+    @Override
+    protected void computeTableStats(String name) throws SQLException {
+        executeStatement("compute stats " + name);
     }
 }
