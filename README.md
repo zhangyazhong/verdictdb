@@ -7,7 +7,7 @@ It is designed to be a middleware standing between user's application and the DB
 Verdict gets the original query from user, transforms it and sends the new query(s) to the DBMS, and gets some raw results back. Then verdict calculates error estimates and return them along with the approximate answers to the user.
 Verdict supports both uniform and stratified samples. It uses the bootstrap method for error estimation which makes it able to support fairly complex queries.
 
-![Verdict is a Middleware](https://github.com/mozafari/verdict/blob/master/docs/overview.png)
+![Verdict is a Middleware](https://github.com/mozafari/verdict/blob/master/docs/overview.png =500x)
 
 
 
