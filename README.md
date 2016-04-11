@@ -8,19 +8,11 @@ Verdict gets the original query from user, transforms it and sends the new query
 Verdict supports both uniform and stratified samples. It uses the bootstrap method for error estimation which makes it able to support fairly complex queries.
 
 
-|  | <img alt="Verdict's overview" src="https://github.com/mozafari/verdict/blob/master/docs/overview.png" width="600px" height="217px"> |  |
-
-
-
-|  | <img alt="Verdict's overview" src="https://github.com/mozafari/verdict/blob/master/docs/overview.png" width="600px" height="217px"> |  |
----------------------------------------------------------------------------------------------------------------------------------------------
-
 <p align="center">
 <img alt="Verdict's overview" src="https://github.com/mozafari/verdict/blob/master/docs/overview.png" width="600px" height="217px">
 </p>
 
 
--> <img alt="Verdict's overview" src="https://github.com/mozafari/verdict/blob/master/docs/overview.png" width="600px" height="217px"> <-
 
 ## 2. Supported DBMSs
 Verdict is designed in a way that be as decoupled as possible from the underlying DBMS. The main parts of Verdict are independent from DBMS and just small amount of code needs to be added to support a new DBMS. This design lets us (or other developers in the future) to easily create a diver for any SQL DBMS and run Verdict on top of that DBMS. 
