@@ -1,19 +1,33 @@
 # Verdict
 
-Verdict makes database users able to get fast, approximate results for their aggregate queries on big data. It is designed as a middleware that stands between user's application and DBMS.
-Verdict gets the original query from user, transforms it to run on samples and calculate error estimate as well as approximate query answer. Then it sends the new query to DBMS and gets back the approximate answer and error estimate and sends them to the user. Sometimes, Verdict needs to post-process the result got from DBMS before sending it to user. 
 
-Verdict is designed in a way that be as decoupled as possible from the underlying DBMS. The main parts of Verdict are independent from DBMS and just small amount of code needs to be added to support a new DBMS. This design lets us (or other developers in the future) to easily create a diver for any SQL DBMS and run Verdict on top of that DBMS. Currently we have developed drivers for **Impala** and **Hive**. We plan to add drivers for some other popular DBMS's soon.
-
+## 1. Introduction
+Verdict makes database users able to get fast, approximate results for their aggregate queries on big data. 
+It is designed to be a middleware standing between user's application and the DBMS.
+Verdict gets the original query from user, transforms it and sends the new query(s) to the DBMS, and gets some raw results back. Then verdict calculates error estimates and return them along with the approximate answers to the user.
 Verdict supports both uniform and stratified samples. It uses the bootstrap method for error estimation which makes it able to support fairly complex queries.
 
+![Verdict is a Middleware](https://github.com/mozafari/verdict/blob/master/docs/overview.png)
 
-## How to Install
 
-### Requirements
+
+## 2. Supported DBMSs
+Verdict is designed in a way that be as decoupled as possible from the underlying DBMS. The main parts of Verdict are independent from DBMS and just small amount of code needs to be added to support a new DBMS. This design lets us (or other developers in the future) to easily create a diver for any SQL DBMS and run Verdict on top of that DBMS. 
+
+Currently we have developed drivers for: 
+
+- **Impala 2.3+**
+- **Hive 1.2+** 
+
+We plan to add drivers for some other popular DBMS's soon.
+
+
+## 3. Installation
+
+### 3.1 Requirements
 Before you can install and run Verdict, the following requirements should be installed:
 - JDK 1.8+ (Please make sure that $JAVA_HOME is set.)
-- One of the supported DBMSs (Hive 1.2+ or Impala 2.3+)
+- One of [the supported DBMSs](#2-supported-dbmss)
 
 
 To install verdict you need to first clone the repository and build the project using SBT as follows. (
