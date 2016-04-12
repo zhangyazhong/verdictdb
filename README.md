@@ -25,14 +25,14 @@ Currently we have developed drivers for:
 We plan to add drivers for some other popular DBMS's soon.
 
 
-## 3. Installation
+## 3. Get Verdict
 
-### 3.1 Requirements
+### 3.1. Requirements
 Before you can install and run Verdict, the following requirements should be installed:
 - JDK 1.8+ (Please make sure that $JAVA_HOME is set.)
 - One of [the supported DBMSs](#2-supported-dbmss)
 
-
+### 3.2. Installation
 To install verdict you need to first clone the repository and build the project using SBT as follows. (
 
 ```
@@ -41,31 +41,14 @@ cd verdict
 build/sbt assembly
 ```
 
-Now you need to configure Verdict. In the Configuration section, please read the part related to the DBMS you plan to use Verdict with.
+Now you need to configure Verdict. In the [Configuration](#31-configuration) section, please read the part related to the DBMS you plan to use Verdict with.
  
-## Verdict Configurations
+### 3.3. Configuration
+You need to configure Verdict before being able to run it. templates for Verdict's configurations can be found in the `configs` folder. Please find the template based on the DBMS you want to use and edit it based on description provided in the following subsections. 
 
-A template for Verdict's configurations for each supported DBMS can be found in `configs` folder. You can find the config file for the DBMS you want to use and edit it based on description provided in the following subsections. 
+#### Configurations for Impala 
 
-### Global Configurations
-
-The following configurations are related to approximate query processing and you may need to customized them regardless of what DBMS you use.
-The value of this options can also be changed during running verdict using command [`SET`](#set-and-get-commands).
- 
-|Config         |Default Value  |Description                                        |
-|------         |-------------  |-----------                                        |
-|`bootstrap`    |`on`           |A boolean value `on/off` that switches approximate query processing on and off. Verdict doesn't do anything and just submits the original queries to the DBMS if this option is set to `off`.|
-|`bootstrap.method`    |`uda`   |This option can have one of the values `uda`,`udf` or `stored`. It determines the method Verdict uses to perform bootstrap trials for calculating estimated error. Usually the `uda` method is the fastest, but other two options are useful for the DBMSs that don't support UDA (user defined aggregate function).|
-|`bootstrap.trials`    |`100`   |An integer specifying the number of bootstrap trials being run for calculating error estimation. Usually `100` or smaller number works well. Choosing a very small number reduces the accuracy of error estimations, while a very large number of bootstrap trials makes the query slow.|
-|`bootstrap.confidence`|`95%`   |A percentage that determines the confidence level for reporting the confidence interval (error estimation). For example when it is set to 95%, it means that Verdict is 95% confident that the true answer for the query is in the provided bound.|
-|`bootstrap.sample_size`|`1%`   |A percentage that determines the preferred size for the sample (relative to the actual table) used for running approximate query. Choosing a small sample makes your queries faster but with higher error. When multiple samples are present for a table, Verdict tries to use the sample which size is closest to this value.|
-|`bootstrap.sample_type`|`uniform`   |This option tells Verdict what kind of sample (`uniform` or `stratified`) do you prefer to run your query on. If both kind of samples are present for a table, Verdict tries to chose the one that is the kind specified in this option.|
-|`bootstrap.extra_columns`|`ci`     | This options tells Verdict to generate what extra columns for error estimation in the query results. You can specify any combination of the following: confidence intervals (`ci`), error bound (`e`), error bound percentage (`ep`) and variance (`v`). To specify more than one, seperate them with `_`, for example using value `ci_ep` will generate two more columns for each aggregate expression in the result set, one for confidence intervals and one for error bound percentages.
-
-
-### Configurations for Impala 
-
-Please correct the values of the following configs in `configs/impala.conf`, if needed.
+Please decide about the values of the following configs in `configs/impala.conf`:
 
 |Config         |Default Value  |Description                                        |
 |------         |-------------  |-----------                                        |
@@ -80,9 +63,9 @@ Verdict for Impala also needs to connect to Hive. Because Impala hasn't necessar
 
 For using Verdict on Impala, you also need to set the values for Hive's configs. Please correct the Hive's config in `configs/impala.conf` based on the next section. Not that you do not need to edit `configs/hive.conf` for running verdict on Impala.
 
-### Configurations for Hive 
+#### Configurations for Hive 
 
-Please correct the values of the following configs in `configs/hive.conf`, if needed.
+Please decide about the values of the following configs in `configs/hive.conf`:
 
 |Config         |Default Value  |Description                                        |
 |------         |-------------  |-----------                                        |
@@ -94,7 +77,7 @@ Please correct the values of the following configs in `configs/hive.conf`, if ne
 |`udf_bin` |None           |Verdict needs to deploy some UDF and UDAs into Hive. You need to copy the `udf_bin` folder to a place accessible by Hive (If Hive is running in another server you may need to copy `udf_bin` folder to that server).|
 
 
-## Running Verdict
+### 3.4. Running Verdict
 
 After building and configuring Verdict, you can run the its command line interface (CLI) using the following command:
 
@@ -105,9 +88,14 @@ Replace `<config_file>` with the config file you edited in the configuration ste
 You should be able to see the message `Successfully connected to <DBMS>`.
 
 
-## Samples
 
-Before you can submit any queries, you need to tell Verdict to create the samples you need. For doing that, you can use the `CREATE SAMPLE` command:
+## 4. Using Verdict
+
+Before you can [run approximate queries](#), you need to do two things: [create sample(s)](#41-samples) and decide on [bootstrap options](#)
+
+### 4.1. Samples
+
+Verdict uses sample for approximate queries. You should create the samples you need using the `CREATE SAMPLE` command:
  
 ```
 CREATE SAMPLE <sample_name> FROM <table_name> WITH SIZE <size_percentage>% 
@@ -123,6 +111,7 @@ CREATE SAMPLE <sample_name> FROM <table_name> WITH SIZE <size_percentage>%
 |`<number_of_poisson_columns>`   |This part is optional. This option specifies the number of Poisson random number columns to be generated and stored in the sample. These random numbers are needed only when you are using the `stored` bootstrap method.|
 |`<column(s)>`   |If you want to create a uniform sample just ignore this part, otherwise, if you want to create a stratified sample, with this option you can specify the column(s) based on which Verdict should construct strata. The resulting sample will have a stratum for each distinct value of the specified column(s).|
 
+
 To list the existing samples use the following command:
 
 ```
@@ -137,11 +126,26 @@ SHOW [<type>] SAMPLES [FOR <table_name>];
 To delete a sample use the following command:
 
 ```
-DROP <sample_name>;
+DROP SAMPLE <sample_name>;
 ```
 
+### 4.2. Bootstrap Options
 
-## Submitting Query
+The following options tells Verdict how to process approximate queries and you may need to customized them regardless of what DBMS you use.
+The default values of this options can be specified in the config file. You can also re-set the values before each query while Verdict is running using the [`SET`](#45-set-and-get-commands) command.
+ 
+|Config         |Default Value  |Description                                        |
+|------         |-------------  |-----------                                        |
+|`bootstrap`    |`on`           |A boolean value `on/off` that switches approximate query processing on and off. Verdict doesn't do anything and just submits the original queries to the DBMS if this option is set to `off`.|
+|`bootstrap.method`    |`uda`   |This option can have one of the values `uda`,`udf` or `stored`. It determines the method Verdict uses to perform bootstrap trials for calculating estimated error. Usually the `uda` method is the fastest, but other two options are useful for the DBMSs that don't support UDA (user defined aggregate function).|
+|`bootstrap.trials`    |`100`   |An integer specifying the number of bootstrap trials being run for calculating error estimation. Usually `100` or smaller number works well. Choosing a very small number reduces the accuracy of error estimations, while a very large number of bootstrap trials makes the query slow.|
+|`bootstrap.confidence`|`95%`   |A percentage that determines the confidence level for reporting the confidence interval (error estimation). For example when it is set to 95%, it means that Verdict is 95% confident that the true answer for the query is in the provided bound.|
+|`bootstrap.sample_size`|`1%`   |A percentage that determines the preferred size for the sample (relative to the actual table) used for running approximate query. Choosing a small sample makes your queries faster but with higher error. When multiple samples are present for a table, Verdict tries to use the sample which size is closest to this value.|
+|`bootstrap.sample_type`|`uniform`   |This option tells Verdict what kind of sample (`uniform` or `stratified`) do you prefer to run your query on. If both kind of samples are present for a table, Verdict tries to chose the one that is the kind specified in this option.|
+|`bootstrap.extra_columns`|`ci`     | This options tells Verdict to generate what extra columns for error estimation in the query results. You can specify any combination of the following: confidence intervals (`ci`), error bound (`e`), error bound percentage (`ep`) and variance (`v`). To specify more than one, seperate them with `_`, for example using value `ci_ep` will generate two more columns for each aggregate expression in the result set, one for confidence intervals and one for error bound percentages.
+
+
+### 4.3. Submitting Query
 
 After creating the proper samples, you can submit your queries. You should write your query as you would for an exact answer, that is, you should use the original table in your query, not a sample.
 
@@ -173,7 +177,7 @@ bar         |34613      |[34332, 34690]
  
 
 
-## Supported Queries
+### 4.4. Supported Queries
 
 Currently, Verdict supports the queries that have the following criteria:
 - Query should have at least one of the supported aggregate functions `COUNT`, `SUM` and `AVG`
@@ -183,9 +187,9 @@ Currently, Verdict supports the queries that have the following criteria:
 If Verdict identify a query as unsupported query, it will try running the query without modification. 
 
 
-## `SET` and `GET` commands
+### 4.5. `SET` and `GET` commands
 
-You can use `SET` and `GET` commands to set or get the value of a query processing parameters [global configurations](#global-configurations) while verdict is running.
+You can use `SET` and `GET` commands to set or get the value of a [bootstrap option](#42-bootstrap-options) while verdict is running.
 
 ```
 SET <parameter> = <value>;
