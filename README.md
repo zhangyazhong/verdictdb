@@ -22,7 +22,7 @@ Currently we have developed drivers for:
 - **Impala 2.3+**
 - **Hive 1.2+** 
 
-We plan to add drivers for some other popular DBMS's soon.
+We plan to add drivers for some other popular DBMS's very soon.
 
 
 ## 3. Get Verdict
@@ -48,7 +48,7 @@ You need to configure Verdict before being able to run it. templates for Verdict
 
 #### Configurations for Impala 
 
-Please decide about the values of the following configs in `configs/impala.conf`:
+Please replace the the values of the following configs in the `configs/impala.conf` file, if needed:
 
 |Config         |Default Value  |Description                                        |
 |------         |-------------  |-----------                                        |
@@ -65,7 +65,7 @@ For using Verdict on Impala, you also need to set the values for Hive's configs.
 
 #### Configurations for Hive 
 
-Please decide about the values of the following configs in `configs/hive.conf`:
+Please replace the values of the following configs in the `configs/hive.conf` file, if needed:
 
 |Config         |Default Value  |Description                                        |
 |------         |-------------  |-----------                                        |
