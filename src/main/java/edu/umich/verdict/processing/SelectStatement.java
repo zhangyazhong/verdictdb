@@ -27,9 +27,9 @@ public class SelectStatement extends ParsedStatement {
         TransformedQuery transformed = QueryTransformer.forConfig(conf, connector.getMetaDataManager(), this).transform();
         String q = transformed.toString();
         if (transformed.isChanged()) {
-            info("New Query:");
-            info(q);
-            info("\n");
+//            info("New Query:");
+//            info(q);
+//            info("\n");
             info("Using Sample: " + transformed.getSample().getName() + " Size: " + (transformed.getSample().getCompRatio() *
                     100) + "%" + " Type: " + (transformed.getSample() instanceof StratifiedSample ? "Stratified" : "Uniform"));
             info("Bootstrap Trials: " + transformed.getBootstrapTrials());

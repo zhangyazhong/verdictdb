@@ -32,7 +32,7 @@ public abstract class QueryTransformer {
     protected String sampleAlias;
 
     public static QueryTransformer forConfig(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
-        if (!conf.getBoolean("bootstrap"))
+        if (!conf.getBoolean("approximation"))
             return new IdenticalTransformer(conf, metaDataManager, q);
         switch (conf.get("bootstrap.method")) {
             case "uda":

@@ -136,7 +136,7 @@ The default values of this options can be specified in the config file. You can 
  
 |Config         |Default Value  |Description                                        |
 |------         |-------------  |-----------                                        |
-|`bootstrap`    |`on`           |A boolean value `on/off` that switches approximate query processing on and off. Verdict doesn't do anything and just submits the original queries to the DBMS if this option is set to `off`.|
+|`approximation`    |`on`           |A boolean value `on/off` that switches approximate query processing on and off. Verdict doesn't do anything and just submits the original queries to the DBMS if this option is set to `off`.|
 |`bootstrap.method`    |`uda`   |This option can have one of the values `uda`,`udf` or `stored`. It determines the method Verdict uses to perform bootstrap trials for calculating estimated error. Usually the `uda` method is the fastest, but other two options are useful for the DBMSs that don't support UDA (user defined aggregate function).|
 |`bootstrap.trials`    |`100`   |An integer specifying the number of bootstrap trials being run for calculating error estimation. Usually `100` or smaller number works well. Choosing a very small number reduces the accuracy of error estimations, while a very large number of bootstrap trials makes the query slow.|
 |`bootstrap.confidence`|`95%`   |A percentage that determines the confidence level for reporting the confidence interval (error estimation). For example when it is set to 95%, it means that Verdict is 95% confident that the true answer for the query is in the provided bound.|
