@@ -12,7 +12,7 @@ class ConfigurationSpec extends VerdictFlatSpec with BeforeAndAfterAll {
   }
 
   "Configuration" should "have the default values" in {
-    conf.get("bootstrap") should not be null
+    conf.get("approximation") should not be null
   }
 
   it should "have values from file" in {
