@@ -69,7 +69,7 @@ public class VResultSet implements ResultSet {
     }
 
     public String getString(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getString(columnIndex) : extraColumns.get(columnIndex).toString();
+        return columnIndex <= originalColumnCount ? originalResultSet.getString(columnIndex) : extraColumns.get(columnIndex) + "";
     }
 
     public boolean getBoolean(int columnIndex) throws SQLException {

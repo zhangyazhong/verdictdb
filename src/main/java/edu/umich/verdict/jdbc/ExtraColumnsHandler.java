@@ -109,20 +109,20 @@ class ExtraColumnsHandler {
         return temp / data.length;
     }
 
-    private Object getValue(int i) {
+    private double getValue(int i) {
         switch (extraColumnsTypes[i % extraColumnsPerAggregate]) {
             case ConfidenceIntervalLower:
-                return intervals[i / extraColumnsPerAggregate].start+"";
+                return intervals[i / extraColumnsPerAggregate].start;
             case ConfidenceIntervalUpper:
-                return intervals[i / extraColumnsPerAggregate].end+"";
+                return intervals[i / extraColumnsPerAggregate].end;
             case Error:
-                return errors[i / extraColumnsPerAggregate] + "";
+                return errors[i / extraColumnsPerAggregate];
             case ErrorPercentage:
-                return errorPercentages[i / extraColumnsPerAggregate] + "%";
+                return errorPercentages[i / extraColumnsPerAggregate];
             case Variance:
-                return variances[i / extraColumnsPerAggregate] + "";
+                return variances[i / extraColumnsPerAggregate];
             default:
-                return null;
+                return 0;
         }
     }
 
@@ -139,7 +139,7 @@ class ExtraColumnsHandler {
     }
 
     public int getDisplaySize(int column) {
-        return 44;
+        return 20;
     }
 
     public String getLabel(int column) {
@@ -179,7 +179,7 @@ class ExtraColumnsHandler {
 
     public String getTypeName(int column) {
         //TODO: complete
-        return "VARCHAR";
+        return "DOUBLE";
     }
 
     public String getClassName(int column) {
@@ -187,7 +187,7 @@ class ExtraColumnsHandler {
         return String.class.getName();
     }
 
-    public Object get(int column) throws SQLException {
+    public double get(int column) throws SQLException {
         //TODO: complete
         if (!areValuesValid)
             updateValues();
