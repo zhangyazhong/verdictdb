@@ -37,35 +37,59 @@ public class VResultSet implements ResultSet {
     }
 
     public void beforeFirst() throws SQLException {
-
+        originalResultSet.beforeFirst();
+        extraColumns.invalidateValues();
     }
 
     public void afterLast() throws SQLException {
-
+        originalResultSet.afterLast();
+        extraColumns.invalidateValues();
     }
 
     public boolean first() throws SQLException {
-        return false;
+        if (!originalResultSet.first())
+            return false;
+        extraColumns.invalidateValues();
+        return true;
     }
 
     public boolean last() throws SQLException {
-        return false;
+        if (!originalResultSet.last())
+            return false;
+        extraColumns.invalidateValues();
+        return true;
     }
 
     public boolean absolute(int row) throws SQLException {
-        return false;
+        if (!originalResultSet.absolute(row))
+            return false;
+        extraColumns.invalidateValues();
+        return true;
     }
 
     public boolean relative(int rows) throws SQLException {
-        return false;
+        if (!originalResultSet.relative(rows))
+            return false;
+        extraColumns.invalidateValues();
+        return true;
     }
 
     public boolean previous() throws SQLException {
-        return false;
+        if (!originalResultSet.previous())
+            return false;
+        extraColumns.invalidateValues();
+        return true;
     }
 
     public int findColumn(String columnLabel) throws SQLException {
-        return 0;
+        try {
+            return originalResultSet.findColumn(columnLabel);
+        } catch (SQLException e) {
+            int col = extraColumns.findColumn(columnLabel);
+            if (col != -1)
+                return col;
+            throw e;
+        }
     }
 
     public String getString(int columnIndex) throws SQLException {
@@ -73,127 +97,127 @@ public class VResultSet implements ResultSet {
     }
 
     public boolean getBoolean(int columnIndex) throws SQLException {
-        return false;
+        return columnIndex <= originalColumnCount ? originalResultSet.getBoolean(columnIndex) : extraColumns.get(columnIndex) != 0;
     }
 
     public byte getByte(int columnIndex) throws SQLException {
-        return 0;
+        return columnIndex <= originalColumnCount ? originalResultSet.getByte(columnIndex) : (byte) extraColumns.get(columnIndex);
     }
 
     public short getShort(int columnIndex) throws SQLException {
-        return 0;
+        return columnIndex <= originalColumnCount ? originalResultSet.getShort(columnIndex) : (short) extraColumns.get(columnIndex);
     }
 
     public int getInt(int columnIndex) throws SQLException {
-        return 0;
+        return columnIndex <= originalColumnCount ? originalResultSet.getInt(columnIndex) : (int) extraColumns.get(columnIndex);
     }
 
     public long getLong(int columnIndex) throws SQLException {
-        return 0;
+        return columnIndex <= originalColumnCount ? originalResultSet.getLong(columnIndex) : (long) extraColumns.get(columnIndex);
     }
 
     public float getFloat(int columnIndex) throws SQLException {
-        return 0;
+        return columnIndex <= originalColumnCount ? originalResultSet.getFloat(columnIndex) : (float) extraColumns.get(columnIndex);
     }
 
     public double getDouble(int columnIndex) throws SQLException {
-        return 0;
+        return columnIndex <= originalColumnCount ? originalResultSet.getDouble(columnIndex) : extraColumns.get(columnIndex);
     }
 
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        return null;
+        return columnIndex <= originalColumnCount ? originalResultSet.getBigDecimal(columnIndex) : BigDecimal.valueOf(extraColumns.get(columnIndex));
     }
 
     public byte[] getBytes(int columnIndex) throws SQLException {
-        return new byte[0];
+        return originalResultSet.getBytes(columnIndex);
     }
 
     public Date getDate(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getDate(columnIndex);
     }
 
     public Time getTime(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getTime(columnIndex);
     }
 
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getTimestamp(columnIndex);
     }
 
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getAsciiStream(columnIndex);
     }
 
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getUnicodeStream(columnIndex);
     }
 
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getBinaryStream(columnIndex);
     }
 
     public String getString(String columnLabel) throws SQLException {
-        return null;
+        return getString(findColumn(columnLabel));
     }
 
     public boolean getBoolean(String columnLabel) throws SQLException {
-        return false;
+        return getBoolean(findColumn(columnLabel));
     }
 
     public byte getByte(String columnLabel) throws SQLException {
-        return 0;
+        return getByte(findColumn(columnLabel));
     }
 
     public short getShort(String columnLabel) throws SQLException {
-        return 0;
+        return getShort(findColumn(columnLabel));
     }
 
     public int getInt(String columnLabel) throws SQLException {
-        return 0;
+        return getInt(findColumn(columnLabel));
     }
 
     public long getLong(String columnLabel) throws SQLException {
-        return 0;
+        return getLong(findColumn(columnLabel));
     }
 
     public float getFloat(String columnLabel) throws SQLException {
-        return 0;
+        return getFloat(findColumn(columnLabel));
     }
 
     public double getDouble(String columnLabel) throws SQLException {
-        return 0;
+        return getDouble(findColumn(columnLabel));
     }
 
     public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-        return null;
+        return getBigDecimal(findColumn(columnLabel));
     }
 
     public byte[] getBytes(String columnLabel) throws SQLException {
-        return new byte[0];
+        return getBytes(findColumn(columnLabel));
     }
 
     public Date getDate(String columnLabel) throws SQLException {
-        return null;
+        return getDate(findColumn(columnLabel));
     }
 
     public Time getTime(String columnLabel) throws SQLException {
-        return null;
+        return getTime(findColumn(columnLabel));
     }
 
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        return null;
+        return getTimestamp(findColumn(columnLabel));
     }
 
     public InputStream getAsciiStream(String columnLabel) throws SQLException {
-        return null;
+        return getAsciiStream(findColumn(columnLabel));
     }
 
     public InputStream getUnicodeStream(String columnLabel) throws SQLException {
-        return null;
+        return getUnicodeStream(findColumn(columnLabel));
     }
 
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
-        return null;
+        return getBinaryStream(findColumn(columnLabel));
     }
 
     public Object getObject(int columnIndex) throws SQLException {
@@ -201,135 +225,143 @@ public class VResultSet implements ResultSet {
     }
 
     public Object getObject(String columnLabel) throws SQLException {
-        return null;
+        return getObject(findColumn(columnLabel));
     }
 
     public Reader getCharacterStream(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getCharacterStream(columnIndex);
     }
 
     public Reader getCharacterStream(String columnLabel) throws SQLException {
-        return null;
+        return getCharacterStream(findColumn(columnLabel));
     }
 
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getBigDecimal(columnIndex);
     }
 
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        return null;
+        return getBigDecimal(findColumn(columnLabel));
     }
 
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        return null;
+        return originalResultSet.getObject(columnIndex);
     }
 
     public Ref getRef(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getRef(columnIndex);
     }
 
     public Blob getBlob(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getBlob(columnIndex);
     }
 
     public Clob getClob(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getClob(columnIndex);
     }
 
     public Array getArray(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getArray(columnIndex);
     }
 
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-        return null;
+        return getObject(findColumn(columnLabel), map);
     }
 
     public Ref getRef(String columnLabel) throws SQLException {
-        return null;
+        return getRef(findColumn(columnLabel));
     }
 
     public Blob getBlob(String columnLabel) throws SQLException {
-        return null;
+        return getBlob(findColumn(columnLabel));
     }
 
     public Clob getClob(String columnLabel) throws SQLException {
-        return null;
+        return getClob(findColumn(columnLabel));
     }
 
     public Array getArray(String columnLabel) throws SQLException {
-        return null;
+        return getArray(findColumn(columnLabel));
     }
 
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        return null;
+        return originalResultSet.getDate(columnIndex);
     }
 
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-        return null;
+        return getDate(findColumn(columnLabel), cal);
     }
 
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        return null;
+        return originalResultSet.getTime(columnIndex);
     }
 
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        return null;
+        return getTime(findColumn(columnLabel), cal);
     }
 
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        return null;
+        return originalResultSet.getTimestamp(columnIndex);
     }
 
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        return null;
+        return getTimestamp(findColumn(columnLabel), cal);
     }
 
     public URL getURL(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getURL(columnIndex);
     }
 
     public URL getURL(String columnLabel) throws SQLException {
-        return null;
+        return getURL(findColumn(columnLabel));
     }
 
     public NClob getNClob(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getNClob(columnIndex);
     }
 
     public NClob getNClob(String columnLabel) throws SQLException {
-        return null;
+        return getNClob(findColumn(columnLabel));
     }
 
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getSQLXML(columnIndex);
     }
 
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
-        return null;
+        return getSQLXML(findColumn(columnLabel));
     }
 
     public String getNString(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getNString(columnIndex);
     }
 
     public String getNString(String columnLabel) throws SQLException {
-        return null;
+        return getNString(findColumn(columnLabel));
     }
 
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        return null;
+        return originalResultSet.getNCharacterStream(columnIndex);
     }
 
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        return null;
+        return getNCharacterStream(findColumn(columnLabel));
     }
 
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-        return null;
+        return originalResultSet.getObject(columnIndex, type);
     }
 
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
-        return null;
+        return getObject(findColumn(columnLabel), type);
+    }
+
+    public RowId getRowId(int columnIndex) throws SQLException {
+        return originalResultSet.getRowId(columnIndex);
+    }
+
+    public RowId getRowId(String columnLabel) throws SQLException {
+        return getRowId(findColumn(columnLabel));
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -349,70 +381,78 @@ public class VResultSet implements ResultSet {
     }
 
     public SQLWarning getWarnings() throws SQLException {
-        return null;
+        return originalResultSet.getWarnings();
     }
 
     public void clearWarnings() throws SQLException {
-
+        originalResultSet.clearWarnings();
     }
 
     public String getCursorName() throws SQLException {
-        return null;
+        return originalResultSet.getCursorName();
     }
 
     public boolean isBeforeFirst() throws SQLException {
-        return false;
+        return originalResultSet.isBeforeFirst();
     }
 
     public boolean isAfterLast() throws SQLException {
-        return false;
+        return originalResultSet.isAfterLast();
     }
 
     public boolean isFirst() throws SQLException {
-        return false;
+        return originalResultSet.isFirst();
     }
 
     public boolean isLast() throws SQLException {
-        return false;
+        return originalResultSet.isLast();
     }
 
     public int getRow() throws SQLException {
-        return 0;
+        return originalResultSet.getRow();
     }
 
     public void setFetchDirection(int direction) throws SQLException {
-
+        originalResultSet.setFetchDirection(direction);
     }
 
     public int getFetchDirection() throws SQLException {
-        return 0;
+        return originalResultSet.getFetchDirection();
     }
 
     public void setFetchSize(int rows) throws SQLException {
-
+        originalResultSet.setFetchSize(rows);
     }
 
     public int getFetchSize() throws SQLException {
-        return 0;
+        return originalResultSet.getFetchSize();
     }
 
     public int getType() throws SQLException {
-        return 0;
+        return originalResultSet.getType();
     }
 
     public int getConcurrency() throws SQLException {
-        return 0;
+        if(isClosed())
+            throw new SQLException("Connection is closed.");
+        return CONCUR_READ_ONLY;
     }
 
     public boolean rowUpdated() throws SQLException {
+        if(isClosed())
+            throw new SQLException("Connection is closed.");
         return false;
     }
 
     public boolean rowInserted() throws SQLException {
+        if(isClosed())
+            throw new SQLException("Connection is closed.");
         return false;
     }
 
     public boolean rowDeleted() throws SQLException {
+        if(isClosed())
+            throw new SQLException("Connection is closed.");
         return false;
     }
 
@@ -421,377 +461,369 @@ public class VResultSet implements ResultSet {
     }
 
     public int getHoldability() throws SQLException {
-        return 0;
+        return originalResultSet.getHoldability();
     }
 
     public boolean isClosed() throws SQLException {
-        return false;
+        return originalResultSet.isClosed();
     }
 
 
     // BELOW METHODS ARE NOT SUPPORTED
 
     public void updateNull(int columnIndex) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBoolean(int columnIndex, boolean x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateByte(int columnIndex, byte x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateShort(int columnIndex, short x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateInt(int columnIndex, int x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateLong(int columnIndex, long x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateFloat(int columnIndex, float x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateDouble(int columnIndex, double x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBigDecimal(int columnIndex, BigDecimal x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateString(int columnIndex, String x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBytes(int columnIndex, byte[] x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateDate(int columnIndex, Date x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateTime(int columnIndex, Time x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateTimestamp(int columnIndex, Timestamp x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateAsciiStream(int columnIndex, InputStream x, int length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBinaryStream(int columnIndex, InputStream x, int length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateCharacterStream(int columnIndex, Reader x, int length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateObject(int columnIndex, Object x, int scaleOrLength) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateObject(int columnIndex, Object x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNull(String columnLabel) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBoolean(String columnLabel, boolean x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateByte(String columnLabel, byte x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateShort(String columnLabel, short x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateInt(String columnLabel, int x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateLong(String columnLabel, long x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateFloat(String columnLabel, float x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateDouble(String columnLabel, double x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBigDecimal(String columnLabel, BigDecimal x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateString(String columnLabel, String x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBytes(String columnLabel, byte[] x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateDate(String columnLabel, Date x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateTime(String columnLabel, Time x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateTimestamp(String columnLabel, Timestamp x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBinaryStream(String columnLabel, InputStream x, int length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateObject(String columnLabel, Object x, int scaleOrLength) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateObject(String columnLabel, Object x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void insertRow() throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateRow() throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void deleteRow() throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void refreshRow() throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void cancelRowUpdates() throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void moveToInsertRow() throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void moveToCurrentRow() throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateRef(int columnIndex, Ref x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateRef(String columnLabel, Ref x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBlob(int columnIndex, Blob x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBlob(String columnLabel, Blob x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateClob(int columnIndex, Clob x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateClob(String columnLabel, Clob x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateArray(int columnIndex, Array x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateArray(String columnLabel, Array x) throws SQLException {
-
-    }
-
-    public RowId getRowId(int columnIndex) throws SQLException {
-        return null;
-    }
-
-    public RowId getRowId(String columnLabel) throws SQLException {
-        return null;
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateRowId(int columnIndex, RowId x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateRowId(String columnLabel, RowId x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNString(int columnIndex, String nString) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNString(String columnLabel, String nString) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateAsciiStream(int columnIndex, InputStream x, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBinaryStream(int columnIndex, InputStream x, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateCharacterStream(int columnIndex, Reader x, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateAsciiStream(String columnLabel, InputStream x, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBinaryStream(String columnLabel, InputStream x, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNCharacterStream(int columnIndex, Reader x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateAsciiStream(int columnIndex, InputStream x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBinaryStream(int columnIndex, InputStream x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateCharacterStream(int columnIndex, Reader x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateAsciiStream(String columnLabel, InputStream x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBinaryStream(String columnLabel, InputStream x) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-
+        throw new SQLException("This result set is read-only.");
     }
 }

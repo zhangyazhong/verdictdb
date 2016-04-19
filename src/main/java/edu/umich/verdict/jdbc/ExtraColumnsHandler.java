@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Objects;
 
 class ExtraColumnsHandler {
@@ -22,6 +23,7 @@ class ExtraColumnsHandler {
     private boolean areValuesValid = false;
     private int extraColumnsPerAggregate;
     private final ExtraColumnType[] extraColumnsTypes;
+    private HashMap<String, Integer> columnLabels = new HashMap<>();
 
     public ExtraColumnsHandler(ResultSet rs, TransformedQuery q, Configuration conf) throws InvalidConfigurationException {
         this.originalResultSet = rs;
@@ -64,6 +66,9 @@ class ExtraColumnsHandler {
         errors = showErrors ? new double[aggregatesCount] : null;
         errorPercentages = showErrorPercentages ? new double[aggregatesCount] : null;
         variances = showVariances ? new double[aggregatesCount] : null;
+
+        for (int i = originalCount; i <= getTotalCount(); i++)
+            columnLabels.put(getLabel(i), i);
     }
 
     public void updateValues() throws SQLException {
@@ -196,6 +201,10 @@ class ExtraColumnsHandler {
 
     public void invalidateValues() {
         areValuesValid = false;
+    }
+
+    public int findColumn(String columnLabel) {
+        return columnLabels.getOrDefault(columnLabel, -1);
     }
 }
 
