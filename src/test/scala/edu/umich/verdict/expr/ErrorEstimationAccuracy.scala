@@ -70,8 +70,7 @@ class ErrorEstimationAccuracy() {
   }
 
   def main(args: Array[String]) {
-    new File("error-test").mkdir()
-    queries.indices.foreach(i=> new File(s"error-test/$i").mkdir())
+    createDirs()
 
     println("Running Exacts ...")
     runExacts()
@@ -85,5 +84,10 @@ class ErrorEstimationAccuracy() {
 
     println("Removing Samples ...")
     removeSamples()
+  }
+
+  def createDirs(): Unit = {
+    new File("error-test").mkdir()
+    queries.indices.foreach(i => new File(s"error-test/$i").mkdir())
   }
 }
