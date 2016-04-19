@@ -41,7 +41,7 @@ cd verdict
 build/sbt assembly
 ```
 
-Now you need to configure Verdict. In the [Configuration](#31-configuration) section, please read the part related to the DBMS you plan to use Verdict with.
+Now you need to configure Verdict. In the [Configuration](#33-configuration) section, please read the part related to the DBMS you plan to use Verdict with.
  
 ### 3.3. Configuration
 You need to configure Verdict before being able to run it. templates for Verdict's configurations can be found in the `configs` folder. Please find the template based on the DBMS you want to use and edit it based on description provided in the following subsections. 
@@ -91,7 +91,7 @@ You should be able to see the message `Successfully connected to <DBMS>`.
 
 ## 4. Using Verdict
 
-Before you can [run approximate queries](#), you need to do two things: [create sample(s)](#41-samples) and decide on [bootstrap options](#)
+Before you can [run approximate queries](#43-submitting-query), you need to do two things: [create sample(s)](#41-samples) and decide on [approximation options](#42-approximation-options)
 
 ### 4.1. Samples
 
@@ -129,7 +129,7 @@ To delete a sample use the following command:
 DROP SAMPLE <sample_name>;
 ```
 
-### 4.2. Bootstrap Options
+### 4.2. Approximation Options
 
 The following options tells Verdict how to process approximate queries and you may need to customized them regardless of what DBMS you use.
 The default values of this options can be specified in the config file. You can also re-set the values before each query while Verdict is running using the [`SET`](#45-set-and-get-commands) command.
@@ -152,14 +152,14 @@ After creating the proper samples, you can submit your queries. You should write
 For example, one query can be the following, where the `sales` is the name of the original table:
 
 ```
-SELECT department, SUM(price) from sales GROUP BY department;
+SELECT department, SUM(price) as revenue from sales GROUP BY department;
 ```
 
 On a exact DBMS you'll get a result like below:
 
 ```
-department  |sum(price) 
------------------------
+department  |revenue 
+--------------------
 foo         |4893
 bar         |34509
 ```
@@ -167,13 +167,15 @@ bar         |34509
 However Verdict will output an answer like:
 
 ```
-department  |sum(price) |ci_2   
----------------------------------------
-foo         |4848       |[4753, 5023]
-bar         |34613      |[34332, 34690]
+department  |revenue    |ci_lower_2 | ci_upper_2   
+---------------------------------------------
+foo         |4848       |4753       |5023
+bar         |34613      |34332      |34690
 ```
 
-`ci_2` means the confidence interval for the column number 2. If there are more aggregate function in the query, there will be a column for the confidence interval of each aggregation at the end.
+`ci_lower_2` and `ci_upper_2` are the confidence interval upper and lower bound for the column number 2 (`revenue`). That means, for example, for department foo the approximate revenue is $4848 and Verdict is 95% confident that the actual revenue is between $4753 and $5023.
+
+If there are more aggregate function in the query, there will be a column for the confidence interval of each aggregation at the end.
  
 
 
@@ -189,7 +191,7 @@ If Verdict identify a query as unsupported query, it will try running the query 
 
 ### 4.5. `SET` and `GET` commands
 
-You can use `SET` and `GET` commands to set or get the value of a [bootstrap option](#42-bootstrap-options) while verdict is running.
+You can use `SET` and `GET` commands to set or get the value of a [approximation option](#42-approximation-options) while verdict is running.
 
 ```
 SET <parameter> = <value>;
