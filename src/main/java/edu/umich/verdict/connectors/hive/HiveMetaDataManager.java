@@ -168,4 +168,11 @@ public class HiveMetaDataManager extends MetaDataManager {
         executeStatement(q);
         loadSamples();
     }
+
+    @Override
+    protected String getSamplesInfoQuery(String conditions){
+        return "select cast(name as varchar(30)) as name, cast(table_name as varchar(20)) as `original table`, cast(round(comp_ratio*100,3) as varchar(8)) as `size (%)`, cast(row_count as varchar(10)) as `rows`, cast(poisson_cols as varchar(15)) as `poisson columns`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample"
+                +(conditions!=null?" where "+conditions:"")
+                +" order by `original table`, name";
+    }
 }

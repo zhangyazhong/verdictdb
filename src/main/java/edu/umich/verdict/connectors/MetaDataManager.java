@@ -107,17 +107,21 @@ public abstract class MetaDataManager {
 
     public abstract long getTableSize(String name) throws SQLException;
 
+    protected String getSamplesInfoQuery(String conditions){
+        return "select cast(name as varchar(30)) as name, cast(table_name as varchar(20)) as `original table`, cast(round(comp_ratio*100,3) as varchar(8)) as `size (%)`, cast(row_count as varchar(10)) as `rows`, cast(poisson_cols as varchar(15)) as `poisson columns`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample"
+                +(conditions!=null?" where "+conditions:"")
+                +" order by table_name, name";
+    }
+
     public ResultSet getSamplesInfo(String type, String table) throws SQLException {
-        StringBuilder buf = new StringBuilder();
-        buf.append("select name, table_name as `original table name`, round(comp_ratio*100,3) as `size (%)`, row_count as `rows`, cast(poisson_cols as string) as `poission columns`, cast(stratified as string) as `stratified`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample where true ");
+        StringBuilder buf = new StringBuilder(" true");
         if (type.equals("uniform"))
             buf.append(" and stratified<>true");
         if (type.equals("stratified"))
             buf.append(" and stratified=true");
         if (table != null)
             buf.append(" and table_name='").append(table).append("' ");
-        buf.append(" order by name");
-        return executeQuery(buf.toString());
+        return executeQuery(getSamplesInfoQuery(buf.toString()));
     }
 
     //TODO: general implementation
