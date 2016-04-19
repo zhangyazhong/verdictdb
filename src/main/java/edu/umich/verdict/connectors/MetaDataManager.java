@@ -138,6 +138,10 @@ public abstract class MetaDataManager {
         return res;
     }
 
+    public Sample getSampleByName(String name) {
+        return samples.stream().filter(sample -> sample.getName().equals(name)).findAny().orElse(null);
+    }
+
     public int getSamplesCount() {
         return samples.size();
     }
