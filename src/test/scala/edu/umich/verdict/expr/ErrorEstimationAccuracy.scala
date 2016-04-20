@@ -138,14 +138,14 @@ class ErrorEstimationAccuracy() {
     def exactConfidenceInterval(exactVal: Double, apps: Array[ApproxResult]) = {
       val confidence = .95
       val trials: Int = apps.length
-      val margin: Int = (trials * (1 - confidence) / 2).toInt
-      val sortedVals = apps.map(_.value).sorted
-      (2 * exactVal - sortedVals(trials - margin - 1),
-        2 * exactVal - sortedVals(margin))
+      val sortedVals = apps.map(_.value).sortBy(x => math.abs(exactVal - x))
+      val bound = sortedVals(math.ceil(trials * confidence - 1).asInstanceOf[Int])
+      (exactVal - math.abs(exactVal - bound),
+        exactVal + math.abs(exactVal - bound))
     }
 
     def confidenceIntervalError(exact: (Double, Double), approx: (Double, Double)) = {
-      if(method=="diff")
+      if (method == "diff")
         (math.abs(exact._1 - approx._1) + math.abs(exact._2 - approx._2)) / (exact._2 - exact._1)
       else
         math.abs((exact._2 - exact._1) - (approx._2 - approx._1)) / (exact._2 - exact._1)
