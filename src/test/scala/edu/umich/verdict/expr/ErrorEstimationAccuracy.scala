@@ -13,7 +13,7 @@ import scala.io.Source
 class ErrorEstimationAccuracy() {
   var conf = new Configuration(new File(this.getClass.getClassLoader.getResource("expr/config.conf").getFile))
   var connector = DbConnector.createConnector(conf)
-  var nSamples = 100
+  var nSamples = 1000
   var sampleSize = 0.01
   var table = "lineitem40"
   var nPoissonCols = 100
@@ -32,7 +32,7 @@ class ErrorEstimationAccuracy() {
       |and linestatus = 'F'
     """.stripMargin)
   var exacts: Array[Array[Double]] = null
-  var approxes: Array[Array[Array[ApproxResult]]] = null
+  var approximates: Array[Array[Array[ApproxResult]]] = null
 
   def execute(q: String): ResultSet = {
     Parser.parse(q).run(conf, connector)
@@ -84,10 +84,10 @@ class ErrorEstimationAccuracy() {
     exacts
   }
 
-  def loadApproxes() = {
+  def loadApproximates() = {
     if(exacts == null)
       loadExacts()
-    approxes = queries.indices.map(q => {
+    approximates = queries.indices.map(q => {
     val nCols = exacts(q).length
       var lines = Source.fromFile(s"error-test/$q/approx").getLines().toArray
       lines = lines.indices.filter(_ % 3 == 2).map(lines).toArray
@@ -98,7 +98,7 @@ class ErrorEstimationAccuracy() {
         })
       }).toArray
     }).toArray
-    approxes
+    approximates
   }
 
   def main(args: Array[String]) {
@@ -115,7 +115,7 @@ class ErrorEstimationAccuracy() {
     runApproximates()
 
     loadExacts()
-    loadApproxes()
+    loadApproximates()
 
     println("Removing Samples ...")
     removeSamples()
