@@ -144,7 +144,7 @@ class ExtraColumnsHandler {
     }
 
     public int getDisplaySize(int column) {
-        return 20;
+        return 22;
     }
 
     public String getLabel(int column) {
