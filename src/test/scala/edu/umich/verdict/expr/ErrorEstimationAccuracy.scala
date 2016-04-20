@@ -11,8 +11,8 @@ import edu.umich.verdict.transformation.Parser
 import scala.io.Source
 
 class ErrorEstimationAccuracy() {
-  var conf = new Configuration(new File(this.getClass.getClassLoader.getResource("expr/config.conf").getFile))
-  var connector = DbConnector.createConnector(conf)
+  var conf: Configuration = null
+  var connector: DbConnector = null
   var nSamples = 1000
   var sampleSize = 0.01
   var table = "lineitem40"
@@ -85,23 +85,86 @@ class ErrorEstimationAccuracy() {
   }
 
   def loadApproximates() = {
-    if(exacts == null)
+    if (exacts == null)
       loadExacts()
     approximates = queries.indices.map(q => {
-    val nCols = exacts(q).length
+      val nCols = exacts(q).length
       var lines = Source.fromFile(s"error-test/$q/approx").getLines().toArray
       lines = lines.indices.filter(_ % 3 == 2).map(lines).toArray
       (0 until nCols).map(i => {
         lines.map(line => {
           val vals = line.split("\\|").map(_.trim.toDouble)
-          ApproxResult(vals(i), vals(i + nCols), vals(i + nCols * 2), vals(i + nCols * 3), vals(i + nCols * 4))
+          ApproxResult(vals(i), vals(nCols + 4 * i), vals(nCols + 4 * i + 1), vals(nCols + 4 * i + 2), vals(nCols + 4 * i + 3))
         })
       }).toArray
     }).toArray
     approximates
   }
 
+  def printBias() = {
+    queries.indices.foreach(q => {
+      println(s"Bias for query $q:")
+      approximates(q).indices.foreach(col => {
+        val colVals = approximates(q)(col)
+        val avg = colVals.map(_.value).sum / colVals.length
+        val exact = exacts(q)(col)
+        println(s"column $col: ${math.abs(avg - exact)} (${math.abs(100 * (avg - exact) / exact)}%)")
+      })
+    })
+  }
+
+  def printVarianceError() = {
+    def variance(apps: Array[ApproxResult]) = {
+      val avg = apps.map(_.value).sum / apps.length
+      apps.map(num => (num.value - avg) * (num.value - avg)).sum / apps.length
+    }
+    queries.indices.foreach(q => {
+      println(s"Variance error for query $q:")
+      approximates(q).indices.foreach(col => {
+        val colVals = approximates(q)(col)
+        val exact = variance(colVals)
+        val errorAvg = colVals.map(app => math.abs((app.variance - exact) / exact)).sum / colVals.length
+        println(s"column $col: ${100 * errorAvg}%")
+      })
+    })
+  }
+
+  def connect() = {
+    conf = new Configuration(new File(this.getClass.getClassLoader.getResource("expr/config.conf").getFile))
+    connector = DbConnector.createConnector(conf)
+  }
+
+  def printConfidenceIntervalError(method: String = "diff") = {
+    def exactConfidenceInterval(exactVal: Double, apps: Array[ApproxResult]) = {
+      val confidence = .95
+      val trials: Int = apps.length
+      val margin: Int = (trials * (1 - confidence) / 2).toInt
+      val sortedVals = apps.map(_.value).sorted
+      (2 * exactVal - sortedVals(trials - margin - 1),
+        2 * exactVal - sortedVals(margin))
+    }
+
+    def confidenceIntervalError(exact: (Double, Double), approx: (Double, Double)) = {
+      if(method=="diff")
+        (math.abs(exact._1 - approx._1) + math.abs(exact._2 - approx._2)) / (exact._2 - exact._1)
+      else
+        math.abs((exact._2 - exact._1) - (approx._2 - approx._1)) / (exact._2 - exact._1)
+    }
+
+    queries.indices.foreach(q => {
+      println(s"Confidence interval error for query $q:")
+      approximates(q).indices.foreach(col => {
+        val colVals = approximates(q)(col)
+        val exact = exactConfidenceInterval(exacts(q)(col), colVals)
+        val errorAvg = colVals.map(app => confidenceIntervalError(exact, (app.ciLow, app.ciHigh))).sum / colVals.length
+        println(s"column $col: ${100 * errorAvg}%")
+      })
+    })
+  }
+
   def main(args: Array[String]) {
+    connect()
+
     createDirs()
 
     println("Running Exacts ...")
@@ -117,6 +180,15 @@ class ErrorEstimationAccuracy() {
     loadExacts()
     loadApproximates()
 
+    println("Bias:")
+    printBias()
+
+    println("Variance Error:")
+    printVarianceError()
+
+    println("Confidence Interval Error:")
+    printConfidenceIntervalError()
+
     println("Removing Samples ...")
     removeSamples()
   }
@@ -130,10 +202,9 @@ class ErrorEstimationAccuracy() {
       pw.close()
     })
   }
-
-  case class ApproxResult(value: Double, ciLow: Double, ciHigh: Double, error: Double, variance: Double)
-
 }
+
+case class ApproxResult(value: Double, ciLow: Double, ciHigh: Double, error: Double, variance: Double)
 
 /*
 Shell commands:
