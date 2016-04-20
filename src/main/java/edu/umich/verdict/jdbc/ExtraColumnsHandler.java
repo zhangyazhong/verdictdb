@@ -7,10 +7,7 @@ import edu.umich.verdict.transformation.TransformedQuery;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Objects;
+import java.util.*;
 
 class ExtraColumnsHandler {
     private final ResultSet originalResultSet;
@@ -67,30 +64,30 @@ class ExtraColumnsHandler {
         errorPercentages = showErrorPercentages ? new double[aggregatesCount] : null;
         variances = showVariances ? new double[aggregatesCount] : null;
 
-        for (int i = originalCount+1; i <= getTotalCount(); i++)
+        for (int i = originalCount + 1; i <= getTotalCount(); i++)
             columnLabels.put(getLabel(i), i);
     }
 
     public void updateValues() throws SQLException {
         int baseIndex = q.getOriginalColumnsCount() + 1;
         int trials = q.getBootstrapTrials();
-        int margin = (int) (trials * (1 - q.getConfidence()) / 2);
         for (int j = 0; j < aggregatesCount; j++) {
             TransformedQuery.AggregateInfo aggr = q.getAggregates().get(j);
-            double[] bootstrapResults = new double[trials];
+            Double[] bootstrapResults = new Double[trials];
             for (int i = 0; i < trials; i++)
                 bootstrapResults[i] = originalResultSet.getDouble(i + baseIndex);
             baseIndex += trials;
             if (showIntervals || showErrors) {
-                Arrays.sort(bootstrapResults);
                 double estimatedAnswer = originalResultSet.getDouble(aggr.getColumn());
-                ConfidenceInterval confidenceInterval = new ConfidenceInterval(estimatedAnswer, bootstrapResults, trials, margin);
+                Arrays.sort(bootstrapResults, Comparator.comparing((Double x) -> Math.abs(x - estimatedAnswer)));
+                double bound = bootstrapResults[(int) Math.ceil(trials * q.getConfidence() - 1)];
+                ConfidenceInterval confidenceInterval = new ConfidenceInterval(estimatedAnswer, bound);
                 if (showIntervals)
                     intervals[j] = confidenceInterval;
                 if (showErrors)
-                    errors[j] = Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer));
+                    errors[j] = Math.abs(bound - estimatedAnswer);
                 if (showErrorPercentages)
-                    errorPercentages[j] = 100 * Math.max(Math.abs(confidenceInterval.start - estimatedAnswer), Math.abs(confidenceInterval.end - estimatedAnswer)) / Math.abs(estimatedAnswer);
+                    errorPercentages[j] = 100 * Math.abs(bound - estimatedAnswer) / estimatedAnswer;
             }
             if (showVariances) {
                 variances[j] = getVariance(bootstrapResults);
@@ -99,14 +96,14 @@ class ExtraColumnsHandler {
         areValuesValid = true;
     }
 
-    double getMean(double[] data) {
+    double getMean(Double[] data) {
         double sum = 0.0;
         for (double a : data)
             sum += a;
         return sum / data.length;
     }
 
-    double getVariance(double[] data) {
+    double getVariance(Double[] data) {
         double mean = getMean(data);
         double temp = 0;
         for (double a : data)
@@ -212,9 +209,9 @@ class ExtraColumnsHandler {
 class ConfidenceInterval {
     double start, end;
 
-    ConfidenceInterval(double estimatedAnswer, double[] sortedNumbers, int trials, int margin) {
-        start = 2 * estimatedAnswer - sortedNumbers[trials - margin - 1];
-        end = 2 * estimatedAnswer - sortedNumbers[margin];
+    ConfidenceInterval(double estimatedAnswer, double bound) {
+        start = estimatedAnswer - Math.abs(estimatedAnswer - bound);
+        end = estimatedAnswer + Math.abs(estimatedAnswer - bound);
     }
 
     public String toString() {
