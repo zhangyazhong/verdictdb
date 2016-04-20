@@ -67,7 +67,7 @@ class ExtraColumnsHandler {
         errorPercentages = showErrorPercentages ? new double[aggregatesCount] : null;
         variances = showVariances ? new double[aggregatesCount] : null;
 
-        for (int i = originalCount; i <= getTotalCount(); i++)
+        for (int i = originalCount+1; i <= getTotalCount(); i++)
             columnLabels.put(getLabel(i), i);
     }
 
