@@ -114,7 +114,7 @@ class ErrorEstimationAccuracy() {
         val avg = colVals.map(_.value).sum / colVals.length
         val exact = exacts(q)(col)
         println(s"column $col: ${math.abs(avg - exact)} (${math.abs(100 * (avg - exact) / exact)}%)")
-        pw.println(s"column $col: ${math.abs(avg - exact)} (${math.abs(100 * (avg - exact) / exact)}%)")
+        pw.println(s"${math.abs(avg - exact)} (${math.abs(100 * (avg - exact) / exact)}%)")
       })
       pw.close()
     })
@@ -133,7 +133,7 @@ class ErrorEstimationAccuracy() {
         val exact = variance(colVals)
         val errorAvg = colVals.map(app => math.abs((app.variance - exact) / exact)).sum / colVals.length
         println(s"column $col: ${100 * errorAvg}%")
-        pw.println(s"column $col: ${100 * errorAvg}%")
+        pw.println(s"${100 * errorAvg}%")
       })
       pw.close()
     })
@@ -172,7 +172,7 @@ class ErrorEstimationAccuracy() {
         val exact = exactConfidenceInterval(exacts(q)(col), colVals)
         val errorAvg = colVals.map(app => confidenceIntervalError(exact, (app.ciLow, app.ciHigh))).sum / colVals.length
         println(s"column $col: ${100 * errorAvg}%")
-        pw.println(s"column $col: ${100 * errorAvg}%")
+        pw.println(s"${100 * errorAvg}%")
       })
       pw.close()
     })
@@ -186,7 +186,7 @@ class ErrorEstimationAccuracy() {
         val colVals = approximates(q)(col)
         val avg = colVals.map(app => math.abs(app.error / app.value)).sum / colVals.length
         println(s"column $col: ${100 * avg}%")
-        pw.println(s"column $col: ${100 * avg}%")
+        pw.println(s"${100 * avg}%")
       })
       pw.close()
     })
@@ -259,9 +259,9 @@ class ErrorEstimationAccuracy() {
 object ErrorEstimationAccuracy {
   def run(): Unit = {
     Seq(
-      (100, 95, "uda"),
-      (100, 95, "udf"),
-      (100, 95, "stored")
+      (50, 95, "uda"),
+      (50, 95, "udf"),
+      (50, 95, "stored")
     ).foreach(conf => {
       val etest = new ErrorEstimationAccuracy()
 //      etest.nSamples = 1000
