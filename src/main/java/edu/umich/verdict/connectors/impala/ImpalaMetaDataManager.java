@@ -41,7 +41,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
     }
 
     protected void createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {
-        String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3";
+        String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3", tmp4 = METADATA_DATABASE + ".temp4";
         executeStatement("drop table if exists " + tmp1);
         String strataCols = sample.getStrataColumnsString();
         System.out.println("Collecting strata stats...");
@@ -59,15 +59,15 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         hiveConnector.executeStatement("create table " + tmp2 + " as select " + cols + " from (select " + cols + ", rank() over (partition by " + strataCols + " order by rand()) as rnk from " + sample.getTableName() + ") s where rnk <= " + groupLimit + "");
         executeStatement("invalidate metadata");
         executeStatement("drop table if exists " + tmp3);
-        executeStatement("create table  " + tmp3 + " as (select " + strataCols + ", count(*) as cnt from " + tmp2 + " group by " + strataCols + ")");
-        String joinConds = sample.getJoinCond("s", "t");
+        executeStatement("create table  " + tmp3 + " as (select tw." + cols.replaceAll(",", ",tw.") + ", tw.cnt/sw.cnt as v__ratio from (select " + strataCols + ", count(*) as cnt from " + tmp2 + " group by " + strataCols + ") as sw join " + tmp1 + "as tw on " + sample.getJoinCond("sw", "tw") + ")");
         System.out.println("Calculating group weights...");
-        executeStatement("create table " + getWeightsTable(sample) + " as (select s." + strataCols.replaceAll(",", ",s.") + ", t.cnt/s.cnt as ratio, t.cnt/" + tableSize + " as weight from " + tmp1 + " as t join " + tmp3 + " as s on " + joinConds + ")");
+        executeStatement("create table " + tmp4 + " as (select s." + cols.replaceAll(",", ",s.") + ", r.v__ratio from " + tmp3 + " as r join " + tmp2 + " as s on " + sample.getJoinCond("s", "r") + ")");
         executeStatement("drop table if exists " + tmp1);
         executeStatement("drop table if exists " + tmp3);
-        executeStatement("invalidate metadata");
-        addPoissonCols(sample, tmp2);
         executeStatement("drop table if exists " + tmp2);
+        executeStatement("invalidate metadata");
+        addPoissonCols(sample, tmp4);
+        executeStatement("drop table if exists " + tmp4);
 
     }
 
@@ -81,7 +81,6 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         executeStatement("invalidate metadata");
         addPoissonCols(sample, tmp1);
         executeStatement("drop table if exists " + tmp1);
-
     }
 
     private void addPoissonCols(Sample sample, String fromTable) throws SQLException {
@@ -115,13 +114,15 @@ public class ImpalaMetaDataManager extends MetaDataManager {
     @Override
     public long getTableSize(String name) throws SQLException {
         ResultSet rs = executeQuery("show table stats " + name);
-        rs.next();
-        long size = rs.getLong(1);
-        if(size==-1) {
+        while (!rs.isLast())
+            rs.next();
+        long size = rs.getLong("#Rows");
+        if (size == -1) {
             computeTableStats(name);
             rs = executeQuery("show table stats " + name);
-            rs.next();
-            size = rs.getLong(1);
+            while (!rs.isLast())
+                rs.next();
+            size = rs.getLong("#Rows");
         }
         return size;
     }
