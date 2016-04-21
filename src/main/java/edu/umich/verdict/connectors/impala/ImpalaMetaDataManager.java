@@ -114,15 +114,14 @@ public class ImpalaMetaDataManager extends MetaDataManager {
     @Override
     public long getTableSize(String name) throws SQLException {
         ResultSet rs = executeQuery("show table stats " + name);
-        while (!rs.isLast())
-            rs.next();
-        long size = rs.getLong("#Rows");
+        long size = -1;
+        while (rs.next())
+            size = rs.getLong("#Rows");
         if (size == -1) {
             computeTableStats(name);
             rs = executeQuery("show table stats " + name);
-            while (!rs.isLast())
-                rs.next();
-            size = rs.getLong("#Rows");
+            while (rs.next())
+                size = rs.getLong("#Rows");
         }
         return size;
     }
