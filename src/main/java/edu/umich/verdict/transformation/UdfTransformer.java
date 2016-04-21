@@ -17,7 +17,7 @@ public class UdfTransformer extends QueryTransformer {
             case SUM:
                 return "sum((" + item.getInnerExpression() + ") * verdict.poisson(" + trial + "))";
             case COUNT:
-                return "sum(verdict.poisson(" + trial + "))";
+                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * verdict.poisson(" + trial + "))";
             default:
                 return null;
         }

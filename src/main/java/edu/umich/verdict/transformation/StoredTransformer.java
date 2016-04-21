@@ -29,7 +29,7 @@ public class StoredTransformer extends QueryTransformer {
             case SUM:
                 return "sum((" + item.getInnerExpression() + ") * " + pref + trial + ")";
             case COUNT:
-                return "sum(" + pref + trial + ")";
+                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * " + pref + trial + ")";
             default:
                 return null;
         }
