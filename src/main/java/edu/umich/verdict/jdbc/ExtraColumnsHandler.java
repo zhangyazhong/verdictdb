@@ -17,6 +17,7 @@ class ExtraColumnsHandler {
     private boolean showIntervals = false, showErrors = false, showErrorPercentages = false, showVariances = false;
     private final ConfidenceInterval[] intervals;
     private final double[] errors, errorPercentages, variances;
+    private final boolean[] isNulls;
     private boolean areValuesValid = false;
     private int extraColumnsPerAggregate;
     private final ExtraColumnType[] extraColumnsTypes;
@@ -63,6 +64,7 @@ class ExtraColumnsHandler {
         errors = showErrors ? new double[aggregatesCount] : null;
         errorPercentages = showErrorPercentages ? new double[aggregatesCount] : null;
         variances = showVariances ? new double[aggregatesCount] : null;
+        isNulls = new boolean[aggregatesCount];
 
         for (int i = originalCount + 1; i <= getTotalCount(); i++)
             columnLabels.put(getLabel(i), i);
@@ -77,20 +79,25 @@ class ExtraColumnsHandler {
             for (int i = 0; i < trials; i++)
                 bootstrapResults[i] = originalResultSet.getDouble(i + baseIndex);
             baseIndex += trials;
-            if (showIntervals || showErrors) {
-                double estimatedAnswer = originalResultSet.getDouble(aggr.getColumn());
-                Arrays.sort(bootstrapResults, Comparator.comparing((Double x) -> Math.abs(x - estimatedAnswer)));
-                double bound = bootstrapResults[(int) Math.ceil(trials * q.getConfidence() - 1)];
-                ConfidenceInterval confidenceInterval = new ConfidenceInterval(estimatedAnswer, bound);
-                if (showIntervals)
-                    intervals[j] = confidenceInterval;
-                if (showErrors)
-                    errors[j] = Math.abs(bound - estimatedAnswer);
-                if (showErrorPercentages)
-                    errorPercentages[j] = 100 * Math.abs(bound - estimatedAnswer) / estimatedAnswer;
-            }
-            if (showVariances) {
-                variances[j] = getVariance(bootstrapResults);
+            isNulls[j] = false;
+            if (originalResultSet.getObject(aggr.getColumn()) == null)
+                isNulls[j] = true;
+            else {
+                if (showIntervals || showErrors) {
+                    double estimatedAnswer = originalResultSet.getDouble(aggr.getColumn());
+                    Arrays.sort(bootstrapResults, Comparator.comparing((Double x) -> Math.abs(x - estimatedAnswer)));
+                    double bound = bootstrapResults[(int) Math.ceil(trials * q.getConfidence() - 1)];
+                    ConfidenceInterval confidenceInterval = new ConfidenceInterval(estimatedAnswer, bound);
+                    if (showIntervals)
+                        intervals[j] = confidenceInterval;
+                    if (showErrors)
+                        errors[j] = Math.abs(bound - estimatedAnswer);
+                    if (showErrorPercentages)
+                        errorPercentages[j] = 100 * Math.abs(bound - estimatedAnswer) / estimatedAnswer;
+                }
+                if (showVariances) {
+                    variances[j] = getVariance(bootstrapResults);
+                }
             }
         }
         areValuesValid = true;
@@ -111,7 +118,9 @@ class ExtraColumnsHandler {
         return temp / data.length;
     }
 
-    private double getValue(int i) {
+    private Double getValue(int i) {
+        if (isNulls[i / extraColumnsPerAggregate])
+            return null;
         switch (extraColumnsTypes[i % extraColumnsPerAggregate]) {
             case ConfidenceIntervalLower:
                 return intervals[i / extraColumnsPerAggregate].start;
@@ -124,7 +133,7 @@ class ExtraColumnsHandler {
             case Variance:
                 return variances[i / extraColumnsPerAggregate];
             default:
-                return 0;
+                return null;
         }
     }
 
@@ -189,11 +198,16 @@ class ExtraColumnsHandler {
         return String.class.getName();
     }
 
-    public double get(int column) throws SQLException {
+    public Double get(int column) throws SQLException {
         //TODO: complete
         if (!areValuesValid)
             updateValues();
         return getValue(column - originalCount - 1);
+    }
+
+    public double getDouble(int column) throws SQLException {
+        Double val = get(column);
+        return val == null ? 0.0 : val;
     }
 
     public void invalidateValues() {

@@ -93,39 +93,42 @@ public class VResultSet implements ResultSet {
     }
 
     public String getString(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getString(columnIndex) : extraColumns.get(columnIndex) + "";
+        if (columnIndex <= originalColumnCount)
+            return originalResultSet.getString(columnIndex);
+        Double val = extraColumns.get(columnIndex);
+        return val == null ? null : val + "";
     }
 
     public boolean getBoolean(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getBoolean(columnIndex) : extraColumns.get(columnIndex) != 0;
+        return columnIndex <= originalColumnCount ? originalResultSet.getBoolean(columnIndex) : extraColumns.getDouble(columnIndex) != 0;
     }
 
     public byte getByte(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getByte(columnIndex) : (byte) extraColumns.get(columnIndex);
+        return columnIndex <= originalColumnCount ? originalResultSet.getByte(columnIndex) : (byte) extraColumns.getDouble(columnIndex);
     }
 
     public short getShort(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getShort(columnIndex) : (short) extraColumns.get(columnIndex);
+        return columnIndex <= originalColumnCount ? originalResultSet.getShort(columnIndex) : (short) extraColumns.getDouble(columnIndex);
     }
 
     public int getInt(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getInt(columnIndex) : (int) extraColumns.get(columnIndex);
+        return columnIndex <= originalColumnCount ? originalResultSet.getInt(columnIndex) : (int) extraColumns.getDouble(columnIndex);
     }
 
     public long getLong(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getLong(columnIndex) : (long) extraColumns.get(columnIndex);
+        return columnIndex <= originalColumnCount ? originalResultSet.getLong(columnIndex) : (long) extraColumns.getDouble(columnIndex);
     }
 
     public float getFloat(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getFloat(columnIndex) : (float) extraColumns.get(columnIndex);
+        return columnIndex <= originalColumnCount ? originalResultSet.getFloat(columnIndex) : (float) extraColumns.getDouble(columnIndex);
     }
 
     public double getDouble(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getDouble(columnIndex) : extraColumns.get(columnIndex);
+        return columnIndex <= originalColumnCount ? originalResultSet.getDouble(columnIndex) : extraColumns.getDouble(columnIndex);
     }
 
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getBigDecimal(columnIndex) : BigDecimal.valueOf(extraColumns.get(columnIndex));
+        return columnIndex <= originalColumnCount ? originalResultSet.getBigDecimal(columnIndex) : BigDecimal.valueOf(extraColumns.getDouble(columnIndex));
     }
 
     public byte[] getBytes(int columnIndex) throws SQLException {
@@ -433,25 +436,25 @@ public class VResultSet implements ResultSet {
     }
 
     public int getConcurrency() throws SQLException {
-        if(isClosed())
+        if (isClosed())
             throw new SQLException("Connection is closed.");
         return CONCUR_READ_ONLY;
     }
 
     public boolean rowUpdated() throws SQLException {
-        if(isClosed())
+        if (isClosed())
             throw new SQLException("Connection is closed.");
         return false;
     }
 
     public boolean rowInserted() throws SQLException {
-        if(isClosed())
+        if (isClosed())
             throw new SQLException("Connection is closed.");
         return false;
     }
 
     public boolean rowDeleted() throws SQLException {
-        if(isClosed())
+        if (isClosed())
             throw new SQLException("Connection is closed.");
         return false;
     }
