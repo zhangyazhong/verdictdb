@@ -108,12 +108,15 @@ class ErrorEstimationAccuracy() {
   def printBias() = {
     queries.indices.foreach(q => {
       println(s"Bias for query $q:")
+      val pw = new PrintWriter(new File(s"error-test/$dir/$q/report-variance-error"))
       approximates(q).indices.foreach(col => {
         val colVals = approximates(q)(col)
         val avg = colVals.map(_.value).sum / colVals.length
         val exact = exacts(q)(col)
         println(s"column $col: ${math.abs(avg - exact)} (${math.abs(100 * (avg - exact) / exact)}%)")
+        pw.println(s"column $col: ${math.abs(avg - exact)} (${math.abs(100 * (avg - exact) / exact)}%)")
       })
+      pw.close()
     })
   }
 
@@ -261,7 +264,7 @@ object ErrorEstimationAccuracy {
       (100, 95, "stored")
     ).foreach(conf => {
       val etest = new ErrorEstimationAccuracy()
-      etest.nSamples = 100
+//      etest.nSamples = 1000
       etest.conf.set("bootstrap.trials", conf._1 + "")
       etest.conf.set("bootstrap.confidence", conf._2 + "%")
       etest.conf.set("bootstrap.method", conf._3)
