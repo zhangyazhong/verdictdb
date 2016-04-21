@@ -108,7 +108,7 @@ class ErrorEstimationAccuracy() {
   def printBias() = {
     queries.indices.foreach(q => {
       println(s"Bias for query $q:")
-      val pw = new PrintWriter(new File(s"error-test/$dir/$q/report-variance-error"))
+      val pw = new PrintWriter(new File(s"error-test/$dir/$q/report-bias"))
       approximates(q).indices.foreach(col => {
         val colVals = approximates(q)(col)
         val avg = colVals.map(_.value).sum / colVals.length
