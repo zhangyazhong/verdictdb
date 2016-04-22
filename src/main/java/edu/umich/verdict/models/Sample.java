@@ -72,6 +72,6 @@ public class Sample {
     }
 
     public long getTableSize() {
-        return (long) (this.getRowCount() * (1 / this.getCompRatio()));
+        return (long) (this.getRowCount() / this.getCompRatio());
     }
 }

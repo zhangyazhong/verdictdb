@@ -40,73 +40,105 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         }
     }
 
-    protected void createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException {
-        String tmp1 = METADATA_DATABASE + ".temp1", tmp2 = METADATA_DATABASE + ".temp2", tmp3 = METADATA_DATABASE + ".temp3", tmp4 = METADATA_DATABASE + ".temp4";
-        executeStatement("drop table if exists " + tmp1);
-        String strataCols = sample.getStrataColumnsString();
-        System.out.println("Collecting strata stats...");
-        executeStatement("create table  " + tmp1 + " as (select " + strataCols + ", count(*) as cnt from " + sample.getTableName() + " group by " + strataCols + ")");
-        computeTableStats(tmp1);
-        long groups = getTableSize(tmp1);
-        long groupLimit = (long) ((tableSize * sample.getCompRatio()) / groups);
-        executeStatement("drop table if exists " + tmp2);
-        StringBuilder buf = new StringBuilder();
-        for (String s : getTableCols(sample.getTableName()))
-            buf.append(",").append(s);
-        buf.delete(0, 1);
-        String cols = buf.toString();
-        System.out.println("Creating sample using Hive... (This can take minutes)");
-        hiveConnector.executeStatement("create table " + tmp2 + " as select " + cols + " from (select " + cols + ", rank() over (partition by " + strataCols + " order by rand()) as rnk from " + sample.getTableName() + ") s where rnk <= " + groupLimit + "");
-        executeStatement("invalidate metadata");
-        executeStatement("drop table if exists " + tmp3);
-        executeStatement("create table  " + tmp3 + " as (select tw." + cols.replaceAll(",", ",tw.") + ", tw.cnt/sw.cnt as v__ratio from (select " + strataCols + ", count(*) as cnt from " + tmp2 + " group by " + strataCols + ") as sw join " + tmp1 + "as tw on " + sample.getJoinCond("sw", "tw") + ")");
-        System.out.println("Calculating group weights...");
-        executeStatement("create table " + tmp4 + " as (select s." + cols.replaceAll(",", ",s.") + ", r.v__ratio from " + tmp3 + " as r join " + tmp2 + " as s on " + sample.getJoinCond("s", "r") + ")");
-        executeStatement("drop table if exists " + tmp1);
-        executeStatement("drop table if exists " + tmp3);
-        executeStatement("drop table if exists " + tmp2);
-        executeStatement("invalidate metadata");
-        addPoissonCols(sample, tmp4);
-        executeStatement("drop table if exists " + tmp4);
+    protected void createStratifiedSample(StratifiedSample sample) throws SQLException {
+        long tableSize = getTableSize(sample.getTableName());
+        String originalStrataCounts = getRandomTempTableName(), sampleWithoutWeights = getRandomTempTableName(), strataRatios = getRandomTempTableName();
+        try {
+            String strataCols = sample.getStrataColumnsString(getIdentifierWrappingChar());
+            System.out.println("Collecting strata stats...");
+            executeStatement("create table  " + originalStrataCounts + " as (select " + strataCols + ", count(*) as cnt from " + sample.getTableName() + " group by " + strataCols + ")");
+            computeTableStats(originalStrataCounts);
+            long strata = getTableSize(originalStrataCounts);
+            long rowPerStratum = (long) ((tableSize * sample.getCompRatio()) / strata);
+            if (rowPerStratum < MIN_ROW_FOR_STRATA)
+                System.err.println("WARNING: With this sample size, each stratum will have at most " + rowPerStratum + " rows which is too small for accurate estimations in the future.");
+            StringBuilder buf = new StringBuilder();
+            for (String s : getTableCols(sample.getTableName()))
+                buf.append(",").append(getIdentifierWrappingChar()).append(s).append(getIdentifierWrappingChar());
+            buf.delete(0, 1);
+            String cols = buf.toString();
+            System.out.println("Creating sample using Hive... (This can take minutes)");
+            hiveConnector.executeStatement("create table " + sampleWithoutWeights + " as select " + cols + " from (select " + cols + ", rank() over (partition by " + strataCols + " order by rand()) as rnk from " + sample.getTableName() + ") s where rnk <= " + rowPerStratum + "");
+            executeStatement("invalidate metadata");
+            System.out.println("Calculating strata weights...");
+            executeStatement("create table  " + strataRatios + " as (select tw." + strataCols.replaceAll(",", ",tw.") + ", tw.cnt/sw.cnt as v__ratio from (select " + strataCols + ", count(*) as cnt from " + sampleWithoutWeights + " group by " + strataCols + ") as sw join " + originalStrataCounts + " as tw on " + sample.getJoinCond("sw", "tw", getIdentifierWrappingChar()) + ")");
+            buf = new StringBuilder();
+            buf.append("create table ")
+                    .append(getSampleFullName(sample))
+                    .append(" stored as parquet as (select s.")
+                    .append(cols.replaceAll(",", ",s."))
+                    .append(", r.v__ratio");
+            for (int i = 1; i <= sample.getPoissonColumns(); i++)
+                buf.append("," + METADATA_DATABASE + ".poisson(").append(i).append(") as v__p").append(i);
+            buf.append(" from ")
+                    .append(strataRatios)
+                    .append(" as r join ")
+                    .append(sampleWithoutWeights)
+                    .append(" as s on ")
+                    .append(sample.getJoinCond("s", "r", getIdentifierWrappingChar()))
+                    .append(")");
+            executeStatement(buf.toString());
+            executeStatement("invalidate metadata");
+        } finally {
+            executeStatement("drop table if exists " + originalStrataCounts);
+            executeStatement("drop table if exists " + strataRatios);
+            executeStatement("drop table if exists " + sampleWithoutWeights);
+        }
 
     }
 
     protected void createUniformSample(Sample sample) throws SQLException {
         long buckets = Math.round(1 / sample.getCompRatio());
-        String tmp1 = METADATA_DATABASE + ".temp_sample";
         System.out.println("Creating sample with Hive... (This can take minutes)");
-        hiveConnector.executeStatement("drop table if exists " + tmp1);
-        String create = "create table " + tmp1 + " as select * from " + sample.getTableName() + " tablesample(bucket 1 out of " + buckets + " on rand())";
-        hiveConnector.executeStatement(create);
-        executeStatement("invalidate metadata");
-        addPoissonCols(sample, tmp1);
-        executeStatement("drop table if exists " + tmp1);
-    }
-
-    private void addPoissonCols(Sample sample, String fromTable) throws SQLException {
-        System.out.println("Adding " + sample.getPoissonColumns() + " Poisson random number columns to the sample...");
-        StringBuilder buf = new StringBuilder("create table " + getSampleFullName(sample) + " stored as parquet as (select *");
-        for (int i = 1; i <= sample.getPoissonColumns(); i++)
-            buf.append("," + METADATA_DATABASE + ".poisson(").append(i).append(") as v__p").append(i);
-        buf.append(" from ").append(fromTable).append(")");
-        executeStatement(buf.toString());
-    }
-
-    public void deleteSample(String name) throws SQLException {
-        Sample sample = null;
-        for (Sample s : samples)
-            if (s.getName().equals(name)) {
-                sample = s;
-                break;
+        StringBuilder buf = new StringBuilder();
+        if (sample.getPoissonColumns() == 0) {
+            buf.append("create table ")
+                    .append(getSampleFullName(sample))
+                    .append(" stored as parquet as select *")
+                    .append(" from ")
+                    .append(sample.getTableName())
+                    .append(" tablesample(bucket 1 out of ")
+                    .append(buckets)
+                    .append(" on rand())");
+            hiveConnector.executeStatement(buf.toString());
+            executeStatement("invalidate metadata");
+        } else {
+            // Poisson UDF may not be installed in Hive, so we create a sample without Poisson columns with Hive and add Poisson columns later with Impala
+            String sampleWithoutPoissonCols = getRandomTempTableName();
+            try {
+                buf.append("create table ")
+                        .append(sampleWithoutPoissonCols)
+                        .append(" as select *")
+                        .append(" from ")
+                        .append(sample.getTableName())
+                        .append(" tablesample(bucket 1 out of ")
+                        .append(buckets)
+                        .append(" on rand())");
+                hiveConnector.executeStatement(buf.toString());
+                executeStatement("invalidate metadata");
+                buf = new StringBuilder();
+                buf.append("create table ")
+                        .append(getSampleFullName(sample))
+                        .append(" stored as parquet as (select *");
+                for (int i = 1; i <= sample.getPoissonColumns(); i++)
+                    buf.append("," + METADATA_DATABASE + ".poisson(").append(i).append(") as v__p").append(i);
+                buf.append(" from ")
+                        .append(sampleWithoutPoissonCols)
+                        .append(")");
+                executeQuery(buf.toString());
+            } finally {
+                executeStatement("drop table if exists " + sampleWithoutPoissonCols);
             }
-        if (sample == null)
-            throw new SQLException("No sample with this name exists.");
-        executeStatement("drop table if exists " + getSampleFullName(sample));
-        if (sample instanceof StratifiedSample)
-            executeStatement("drop table if exists " + getWeightsTable((StratifiedSample) sample));
+        }
+    }
+
+
+    @Override
+    protected void deleteSampleRecord(Sample sample) throws SQLException {
+//        executeStatement("insert overwrite table " + METADATA_DATABASE + ".sample select * from " + METADATA_DATABASE + ".sample where name not in (\"" + sample.getName() + "\")");
         executeStatement("drop table if exists " + METADATA_DATABASE + ".oldSample");
         executeStatement("alter table " + METADATA_DATABASE + ".sample rename to " + METADATA_DATABASE + ".oldSample");
-        executeStatement("create table " + METADATA_DATABASE + ".sample as (select * from " + METADATA_DATABASE + ".oldSample where name <> '" + name + "')");
+        executeStatement("create table " + METADATA_DATABASE + ".sample as (select * from " + METADATA_DATABASE + ".oldSample where name <> \"" + sample.getName() + "\")");
         executeStatement("drop table if exists " + METADATA_DATABASE + ".oldSample");
         samples.remove(sample);
     }
@@ -129,5 +161,10 @@ public class ImpalaMetaDataManager extends MetaDataManager {
     @Override
     protected void computeTableStats(String name) throws SQLException {
         executeStatement("compute stats " + name);
+    }
+
+    @Override
+    public char getIdentifierWrappingChar() {
+        return '`';
     }
 }

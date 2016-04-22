@@ -35,9 +35,8 @@ public class CreateSampleStatement extends ParsedStatement {
         try {
             info("Creating sample...");
             connector.getMetaDataManager().createSample(sample);
-            info("Sample created.");
         } catch (Exception e) {
-            System.err.println("Error in creating sample: ");
+            System.err.println("Error while creating sample: ");
             throw e;
         }
         return null;

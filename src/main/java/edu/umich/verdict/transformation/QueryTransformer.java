@@ -229,8 +229,8 @@ public abstract class QueryTransformer {
         rewriter.insertBefore(selectList.getParent().start, buf1.toString());
 
         StringBuilder buf2 = new StringBuilder(") as v__sr JOIN ");
-        buf2.append(metaDataManager.getWeightsTable(sample))
-                .append(" AS v__w ON ");
+//        buf2.append(metaDataManager.getWeightsTable(sample))
+//                .append(" AS v__w ON ");
         for (String col : sample.getStrataColumns())
             buf2.append("v__sr.v__sc_").append(col).append("=").append("v__w.").append(col).append(" and ");
         buf2.replace(buf2.length() - 4, buf2.length(), "");
@@ -375,7 +375,7 @@ public abstract class QueryTransformer {
         }
 
         public String getOuterAlias() {
-            return getOriginalAlias().isEmpty() ? metaDataManager.getAliasCharacter() + expr + metaDataManager.getAliasCharacter() : getOriginalAlias();
+            return getOriginalAlias().isEmpty() ? metaDataManager.getIdentifierWrappingChar() + expr + metaDataManager.getIdentifierWrappingChar() : getOriginalAlias();
         }
 
         public String getWeightColumn() {

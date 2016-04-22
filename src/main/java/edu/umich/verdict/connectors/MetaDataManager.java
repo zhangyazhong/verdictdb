@@ -6,6 +6,8 @@ import edu.umich.verdict.models.StratifiedSample;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 
@@ -15,7 +17,8 @@ import java.util.stream.Collectors;
  * used for query processing to interact with the underlying DBMS.
  */
 public abstract class MetaDataManager {
-    public static final String METADATA_DATABASE = "verdict";
+    public static final String METADATA_DATABASE = "verdict3";
+    public static final int MIN_ROW_FOR_STRATA = 100;
     protected ArrayList<Sample> samples = new ArrayList<>();
     protected DbConnector connector;
     protected DatabaseMetaData dbmsMetaData;
@@ -50,20 +53,28 @@ public abstract class MetaDataManager {
         for (Sample s : samples)
             if (s.getName().equals(sample.getName()))
                 throw new SQLException("A sample with this name is already present.");
-        long tableSize = getTableSize(sample.getTableName());
         if (sample instanceof StratifiedSample)
-            createStratifiedSample((StratifiedSample) sample, tableSize);
+            createStratifiedSample((StratifiedSample) sample);
         else
             createUniformSample(sample);
         computeSampleStats(sample);
+        long tableSize = getTableSize(sample.getTableName());
         sample.setRowCount(getTableSize(getSampleFullName(sample)));
         sample.setCompRatio((double) sample.getRowCount() / tableSize);
         saveSampleInfo(sample);
-
     }
 
     //TODO: General implementation
-    protected abstract void createStratifiedSample(StratifiedSample sample, long tableSize) throws SQLException;
+    protected abstract void createStratifiedSample(StratifiedSample sample) throws SQLException;
+
+    protected String getRandomTempTableName() {
+        String name = METADATA_DATABASE + ".temp" + new Random().nextInt(Integer.MAX_VALUE);
+        try {
+            executeStatement("drop table if exists " + name);
+        } catch (SQLException ignored) {
+        }
+        return name;
+    }
 
     //TODO: General implementation
     protected abstract void createUniformSample(Sample sample) throws SQLException;
@@ -78,7 +89,7 @@ public abstract class MetaDataManager {
     protected void saveSampleInfo(Sample sample) throws SQLException {
         String q;
         if (sample instanceof StratifiedSample)
-            q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + ((StratifiedSample) sample).getStrataColumnsString() + "')";
+            q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(1 as boolean), '" + ((StratifiedSample) sample).getStrataColumnsString(getIdentifierWrappingChar()) + "')";
         else
             q = "insert into " + METADATA_DATABASE + ".sample VALUES ('" + sample.getName() + "', '" + sample.getTableName() + "', now(), " + sample.getCompRatio() + ", " + sample.getRowCount() + ", " + sample.getPoissonColumns() + ", cast(0 as boolean), '')";
         executeStatement(q);
@@ -87,10 +98,6 @@ public abstract class MetaDataManager {
 
     public List<Sample> getTableSamples(String tableName) {
         return samples.stream().filter(s -> s.getTableName().equals(tableName)).collect(Collectors.toList());
-    }
-
-    public String getWeightsTable(StratifiedSample sample) {
-        return METADATA_DATABASE + ".s_" + sample.getName() + "_w";
     }
 
     public void loadSamples() throws SQLException {
@@ -107,10 +114,10 @@ public abstract class MetaDataManager {
 
     public abstract long getTableSize(String name) throws SQLException;
 
-    protected String getSamplesInfoQuery(String conditions){
+    protected String getSamplesInfoQuery(String conditions) {
         return "select cast(name as varchar(30)) as name, cast(table_name as varchar(20)) as `original table`, cast(round(comp_ratio*100,3) as varchar(8)) as `size (%)`, cast(row_count as varchar(10)) as `rows`, cast(poisson_cols as varchar(15)) as `poisson columns`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample"
-                +(conditions!=null?" where "+conditions:"")
-                +" order by table_name, name";
+                + (conditions != null ? " where " + conditions : "")
+                + " order by table_name, name";
     }
 
     public ResultSet getSamplesInfo(String type, String table) throws SQLException {
@@ -124,8 +131,21 @@ public abstract class MetaDataManager {
         return executeQuery(getSamplesInfoQuery(buf.toString()));
     }
 
+    public void deleteSample(String name) throws SQLException {
+        Sample sample = null;
+        for (Sample s : samples)
+            if (s.getName().equals(name)) {
+                sample = s;
+                break;
+            }
+        if (sample == null)
+            throw new SQLException("No sample with this name exists.");
+        executeStatement("drop table if exists " + getSampleFullName(sample));
+        deleteSampleRecord(sample);
+    }
+
     //TODO: general implementation
-    public abstract void deleteSample(String name) throws SQLException;
+    protected abstract void deleteSampleRecord(Sample sample) throws SQLException;
 
     public String getSampleFullName(Sample sample) {
         return METADATA_DATABASE + ".s_" + sample.getName();
@@ -146,7 +166,7 @@ public abstract class MetaDataManager {
         return samples.size();
     }
 
-    public char getAliasCharacter() {
+    public char getIdentifierWrappingChar() {
         return '\'';
     }
 
