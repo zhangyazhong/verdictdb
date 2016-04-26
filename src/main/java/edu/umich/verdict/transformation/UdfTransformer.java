@@ -13,7 +13,7 @@ public class UdfTransformer extends QueryTransformer {
     protected String getUniformTrialExpression(SelectListItem item, int trial) {
         switch (item.getAggregateType()) {
             case AVG:
-                return "sum((" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + "))/sum(" + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + "))";
+                return "sum((" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + "))/" + transformed.getSample().getRowCount();
             case SUM:
                 return "sum((" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + "))";
             case COUNT:
