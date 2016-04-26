@@ -257,14 +257,14 @@ class ErrorEstimationAccuracy() {
 }
 
 object ErrorEstimationAccuracy {
-  def run(): Unit = {
+  def run(trials: Int = 50, confidence: Double = .95): Unit = {
     Seq(
-      (50, 95, "uda"),
-      (50, 95, "udf"),
-      (50, 95, "stored")
+      (trials, confidence * 100, "uda"),
+      (trials, confidence * 100, "udf"),
+      (trials, confidence * 100, "stored")
     ).foreach(conf => {
       val etest = new ErrorEstimationAccuracy()
-//      etest.nSamples = 1000
+      //      etest.nSamples = 1000
       etest.conf.set("bootstrap.trials", conf._1 + "")
       etest.conf.set("bootstrap.confidence", conf._2 + "%")
       etest.conf.set("bootstrap.method", conf._3)
