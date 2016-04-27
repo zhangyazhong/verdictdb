@@ -257,19 +257,16 @@ class ErrorEstimationAccuracy() {
 }
 
 object ErrorEstimationAccuracy {
-  def run(trials: Int = 50, confidence: Double = .95): Unit = {
-    Seq(
-      (trials, confidence * 100, "uda"),
-      (trials, confidence * 100, "udf"),
-      (trials, confidence * 100, "stored")
-    ).foreach(conf => {
-      val etest = new ErrorEstimationAccuracy()
-      //      etest.nSamples = 1000
-      etest.conf.set("bootstrap.trials", conf._1 + "")
-      etest.conf.set("bootstrap.confidence", conf._2 + "%")
-      etest.conf.set("bootstrap.method", conf._3)
-      etest.run()
-    })
+  def run(trials: Int = 50, confidence: Double = .95, methods: Seq[String] = Seq("uda", "udf", "stored")): Unit = {
+    methods.map((trials, confidence * 100, _))
+      .foreach(conf => {
+        val etest = new ErrorEstimationAccuracy()
+        //      etest.nSamples = 1000
+        etest.conf.set("bootstrap.trials", conf._1 + "")
+        etest.conf.set("bootstrap.confidence", conf._2 + "%")
+        etest.conf.set("bootstrap.method", conf._3)
+        etest.run()
+      })
   }
 }
 
