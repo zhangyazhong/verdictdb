@@ -14,7 +14,7 @@ import scala.io.Source
 class ErrorEstimationAccuracy() {
   var conf = new Configuration(new File(this.getClass.getClassLoader.getResource("expr/config.conf").getFile))
   var connector: DbConnector = null
-  var nSamples = 1000
+  var nSamples = 500
   var sampleSize = 0.01
   var table = "lineitem40"
   var nPoissonCols = 100
