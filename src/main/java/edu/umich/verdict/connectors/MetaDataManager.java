@@ -173,4 +173,12 @@ public abstract class MetaDataManager {
     public String getPossionColumnPrefix() {
         return "v__p";
     }
+
+    public String getWeightColumn(){
+        return "v__weight";
+    }
+
+    public boolean supportsUdfOverloading(){
+        return true;
+    }
 }

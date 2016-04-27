@@ -7,7 +7,6 @@ import edu.umich.verdict.models.StratifiedSample;
 import edu.umich.verdict.parser.TsqlBaseVisitor;
 import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.SelectStatement;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 
 import java.sql.SQLException;
@@ -28,7 +27,7 @@ public abstract class QueryTransformer {
 
     protected TsqlParser.Select_listContext selectList = null;
     ArrayList<SelectListItem> selectItems = new ArrayList<>();
-    ArrayList<SelectListItem> groupBys = new ArrayList<>();
+//    ArrayList<SelectListItem> groupBys = new ArrayList<>();
     protected String sampleAlias;
 
     public static QueryTransformer forConfig(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
@@ -66,10 +65,10 @@ public abstract class QueryTransformer {
             System.out.println("WARNING: no sample found for this query.");
             return transformed;
         }
-        if (transformed.getSample() instanceof StratifiedSample)
-            transformStratified();
-        else
-            transformUniform();
+
+        replaceAggregates();
+        addBootstrapTrials();
+
         return transformed;
     }
 
@@ -136,150 +135,195 @@ public abstract class QueryTransformer {
         return sample2.getPoissonColumns() > sample1.getPoissonColumns() ? sample1 : sample2;
     }
 
-    protected void transformUniform() {
-        scaleAggregates();
-        addBootstrapTrials();
+//    protected void transformUniform() {
+//
+//    }
+
+    protected void replaceAggregates() {
+        for (SelectListItem item : selectItems)
+            if (item.isSupportedAggregate()) {
+                if (stratifiedSample())
+                    replaceStratifiedAggregate(item);
+                else
+                    replaceUniformAggregate(item);
+            }
     }
 
-    protected void scaleAggregates() {
-        for (SelectListItem item : selectItems)
-            if (item.isSupportedAggregate())
-                item.scale(rewriter);
+    protected boolean stratifiedSample() {
+        return transformed.getSample() instanceof StratifiedSample;
+    }
+
+    protected void replaceUniformAggregate(SelectListItem item) {
+        double scale = item.getScale();
+        if (scale == 1)
+            return;
+        rewriter.replace(item.ctx.start, item.ctx.stop, scale + "*" + item.expr + " AS " + item.getOuterAlias());
+    }
+
+    protected void replaceStratifiedAggregate(SelectListItem item) {
+        double scale = item.getScale();
+        if (scale == 1)
+            return;
+
+        String expr = item.getInnerExpression(), weightColumn = metaDataManager.getWeightColumn();
+        switch (item.aggregateType) {
+            case COUNT:
+                expr = "sum(((" + expr + ")/(" + expr + "))*" + sampleAlias + "." + weightColumn + ")";
+            case SUM:
+                expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")";
+            case AVG:
+                expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")/" + transformed.getSample().getTableSize();
+        }
+
+        rewriter.replace(item.ctx.start, item.ctx.stop, expr + " AS " + item.getOuterAlias());
     }
 
     protected void addBootstrapTrials() {
+        boolean stratified = stratifiedSample();
         StringBuilder buf = new StringBuilder();
         for (SelectListItem item : selectItems) {
             if (item.isSupportedAggregate()) {
-                buf.append(getBootstrapTrials(item));
+                if (stratified)
+                    buf.append(getStratifiedBootstrapTrials(item));
+                else
+                    buf.append(getUniformBootstrapTrials(item));
             }
         }
         buf.append(" ");
         rewriter.insertAfter(selectList.stop, buf.toString());
     }
 
-    protected String getBootstrapTrials(SelectListItem item) {
+    protected String getUniformBootstrapTrials(SelectListItem item) {
         StringBuilder buf = new StringBuilder();
         for (int i = 0; i < bootstrapTrials; i++)
-            buf.append(", ").append(item.getScale()).append("*(").append(getTrialExpression(item, i + 1)).append(")");
+            buf.append(", ").append(item.getScale()).append("*(").append(getUniformTrialExpression(item, i + 1)).append(")");
         return buf.toString();
     }
 
-    protected void transformStratified() throws SQLException {
-        analyzeGroupBy();
-        addInnerStratifiedBootstrapTrials();
-        joinWithWeightTable();
-        addGroupByStrataColumns();
-    }
-
-    protected void analyzeGroupBy() throws SQLException {
-        TsqlParser.Query_specificationContext selectCtx = (TsqlParser.Query_specificationContext) selectList.getParent();
-        if (selectCtx.GROUP() == null)
-            return;
-        outer:
-        for (TsqlParser.Group_by_itemContext ctx : selectCtx.group_by_item()) {
-            String expr = transformed.getOriginalText(ctx.expression());
-            for (SelectListItem item : selectItems)
-                if (item.isForExpression(expr)) {
-                    groupBys.add(item);
-                    continue outer;
-                }
-            throw new SQLException("GROUP BY item '" + expr + "' should be present in the SELECT list.");
-        }
-    }
-
-    protected void addInnerStratifiedBootstrapTrials() {
+    protected String getStratifiedBootstrapTrials(SelectListItem item) {
         StringBuilder buf = new StringBuilder();
-        for (SelectListItem item : selectItems) {
-            item.addInnerAlias();
-            if (item.isSupportedAggregate()) {
-                buf.append(", ").append(getInnerStratifiedBootstrapTrials(item));
-            }
-        }
-        buf.append(" ");
-        rewriter.insertAfter(selectList.stop, buf.toString());
-    }
-
-    protected String getInnerStratifiedBootstrapTrials(SelectListItem item) {
-        StringBuilder buf = new StringBuilder();
-        String aliasPrefix = item.getInnerAlias() + "_";
         for (int i = 0; i < bootstrapTrials; i++)
-            buf.append(getTrialExpression(item, i + 1)).append(" AS ").append(aliasPrefix).append(i).append(", ");
-        buf.replace(buf.length() - 2, buf.length(), "");
+            buf.append(", ").append(getStratifiedTrialExpression(item, i + 1));
         return buf.toString();
     }
+//
+//    protected void transformStratified() throws SQLException {
+////        analyzeGroupBy();
+////        addInnerStratifiedBootstrapTrials();
+////        joinWithWeightTable();
+////        addGroupByStrataColumns();
+//    }
 
-    protected abstract String getTrialExpression(SelectListItem item, int trial);
+//    protected void analyzeGroupBy() throws SQLException {
+//        TsqlParser.Query_specificationContext selectCtx = (TsqlParser.Query_specificationContext) selectList.getParent();
+//        if (selectCtx.GROUP() == null)
+//            return;
+//        outer:
+//        for (TsqlParser.Group_by_itemContext ctx : selectCtx.group_by_item()) {
+//            String expr = transformed.getOriginalText(ctx.expression());
+//            for (SelectListItem item : selectItems)
+//                if (item.isForExpression(expr)) {
+//                    groupBys.add(item);
+//                    continue outer;
+//                }
+//            throw new SQLException("GROUP BY item '" + expr + "' should be present in the SELECT list.");
+//        }
+//    }
 
-    private void joinWithWeightTable() {
-        StratifiedSample sample = (StratifiedSample) transformed.getSample();
-        StringBuilder buf1 = new StringBuilder("select ");
-        for (SelectListItem item : selectItems)
-            if (item.isSupportedAggregate()) {
-                buf1.append("sum(").append("v__w.").append(item.getWeightColumn()).append("*v__sr.").append(item.getInnerAlias()).append(") AS ").append(item.getOuterAlias()).append(", ");
-            } else {
-                buf1.append("v__sr.").append(item.getInnerAlias()).append(" AS ").append(item.getOuterAlias());
-            }
-        buf1.replace(buf1.length() - 2, buf1.length(), "");
-        for (SelectListItem item : selectItems)
-            if (item.isSupportedAggregate()) {
-                buf1.append(getOuterStratifiedBootstrapTrials(item));
-            }
-        buf1.append(" from (");
-        rewriter.insertBefore(selectList.getParent().start, buf1.toString());
+//    protected void addInnerStratifiedBootstrapTrials() {
+//        StringBuilder buf = new StringBuilder();
+//        for (SelectListItem item : selectItems) {
+//            item.addInnerAlias();
+//            if (item.isSupportedAggregate()) {
+//                buf.append(", ").append(getInnerStratifiedBootstrapTrials(item));
+//            }
+//        }
+//        buf.append(" ");
+//        rewriter.insertAfter(selectList.stop, buf.toString());
+//    }
 
-        StringBuilder buf2 = new StringBuilder(") as v__sr JOIN ");
-//        buf2.append(metaDataManager.getWeightsTable(sample))
-//                .append(" AS v__w ON ");
-        for (String col : sample.getStrataColumns())
-            buf2.append("v__sr.v__sc_").append(col).append("=").append("v__w.").append(col).append(" and ");
-        buf2.replace(buf2.length() - 4, buf2.length(), "");
-        if (!groupBys.isEmpty()) {
-            buf2.append(" group by ");
-            for (SelectListItem item : groupBys)
-                buf2.append(item.getInnerAlias()).append(", ");
-            buf2.replace(buf2.length() - 2, buf2.length(), "");
-        }
-        rewriter.insertAfter(selectList.getParent().stop, buf2.toString());
-    }
+//    protected String getInnerStratifiedBootstrapTrials(SelectListItem item) {
+//        StringBuilder buf = new StringBuilder();
+//        String aliasPrefix = item.getInnerAlias() + "_";
+//        for (int i = 0; i < bootstrapTrials; i++)
+//            buf.append(getUniformTrialExpression(item, i + 1)).append(" AS ").append(aliasPrefix).append(i).append(", ");
+//        buf.replace(buf.length() - 2, buf.length(), "");
+//        return buf.toString();
+//    }
 
-    protected String getOuterStratifiedBootstrapTrials(SelectListItem item) {
-        StringBuilder buf = new StringBuilder();
-        String aliasPrefix = item.getInnerAlias() + "_";
-        for (int i = 0; i < bootstrapTrials; i++)
-            buf.append(", ").append("sum(v__w.").append(item.getWeightColumn()).append("*").append(aliasPrefix).append(i).append(")");
-        return buf.toString();
-    }
+    protected abstract String getUniformTrialExpression(SelectListItem item, int trial);
 
-    private void addGroupByStrataColumns() {
-        //Add columns into the select list
-        //TODO: handle if strataCols already exist
-        String[] cols = ((StratifiedSample) transformed.getSample()).getStrataColumns();
-        StringBuilder buf1 = new StringBuilder();
-        for (String col : cols)
-            buf1.append(", ").append(sampleAlias).append(".").append(col).append(" AS ").append("v__sc_").append(col);
-        rewriter.insertAfter(selectList.stop, buf1.toString());
+    protected abstract String getStratifiedTrialExpression(SelectListItem item, int trial);
 
-        //Add columns into the GROUP BY clause
-        TsqlParser.Query_specificationContext selectCtx = (TsqlParser.Query_specificationContext) selectList.getParent();
-        Token location;
-        StringBuilder buf = new StringBuilder();
-        if (groupBys.isEmpty()) {
-            buf.append(" group by ");
-            if (selectCtx.where != null) {
-                location = selectCtx.where.stop;
-            } else {
-                location = selectCtx.table_source(selectCtx.table_source().size() - 1).stop;
-            }
-        } else {
-            location = selectCtx.group_by_item(groupBys.size() - 1).stop;
-            buf.append(", ");
-        }
-        for (String col : cols)
-            buf.append("v__sc_").append(col).append(", ");
-        buf.replace(buf.length() - 2, buf.length(), "");
-        rewriter.insertAfter(location, buf.toString());
-    }
+//    private void joinWithWeightTable() {
+//        StratifiedSample sample = (StratifiedSample) transformed.getSample();
+//        StringBuilder buf1 = new StringBuilder("select ");
+//        for (SelectListItem item : selectItems)
+//            if (item.isSupportedAggregate()) {
+//                buf1.append("sum(").append("v__w.").append(item.getWeightColumn()).append("*v__sr.").append(item.getInnerAlias()).append(") AS ").append(item.getOuterAlias()).append(", ");
+//            } else {
+//                buf1.append("v__sr.").append(item.getInnerAlias()).append(" AS ").append(item.getOuterAlias());
+//            }
+//        buf1.replace(buf1.length() - 2, buf1.length(), "");
+//        for (SelectListItem item : selectItems)
+//            if (item.isSupportedAggregate()) {
+//                buf1.append(getOuterStratifiedBootstrapTrials(item));
+//            }
+//        buf1.append(" from (");
+//        rewriter.insertBefore(selectList.getParent().start, buf1.toString());
+//
+//        StringBuilder buf2 = new StringBuilder(") as v__sr JOIN ");
+////        buf2.append(metaDataManager.getWeightsTable(sample))
+////                .append(" AS v__w ON ");
+//        for (String col : sample.getStrataColumns())
+//            buf2.append("v__sr.v__sc_").append(col).append("=").append("v__w.").append(col).append(" and ");
+//        buf2.replace(buf2.length() - 4, buf2.length(), "");
+//        if (!groupBys.isEmpty()) {
+//            buf2.append(" group by ");
+//            for (SelectListItem item : groupBys)
+//                buf2.append(item.getInnerAlias()).append(", ");
+//            buf2.replace(buf2.length() - 2, buf2.length(), "");
+//        }
+//        rewriter.insertAfter(selectList.getParent().stop, buf2.toString());
+//    }
+
+//    protected String getOuterStratifiedBootstrapTrials(SelectListItem item) {
+//        StringBuilder buf = new StringBuilder();
+//        String aliasPrefix = item.getInnerAlias() + "_";
+//        for (int i = 0; i < bootstrapTrials; i++)
+//            buf.append(", ").append("sum(v__w.").append(item.getWeightColumn()).append("*").append(aliasPrefix).append(i).append(")");
+//        return buf.toString();
+//    }
+
+//    private void addGroupByStrataColumns() {
+//        //Add columns into the select list
+//        //TODO: handle if strataCols already exist
+//        String[] cols = ((StratifiedSample) transformed.getSample()).getStrataColumns();
+//        StringBuilder buf1 = new StringBuilder();
+//        for (String col : cols)
+//            buf1.append(", ").append(sampleAlias).append(".").append(col).append(" AS ").append("v__sc_").append(col);
+//        rewriter.insertAfter(selectList.stop, buf1.toString());
+//
+//        //Add columns into the GROUP BY clause
+//        TsqlParser.Query_specificationContext selectCtx = (TsqlParser.Query_specificationContext) selectList.getParent();
+//        Token location;
+//        StringBuilder buf = new StringBuilder();
+//        if (groupBys.isEmpty()) {
+//            buf.append(" group by ");
+//            if (selectCtx.where != null) {
+//                location = selectCtx.where.stop;
+//            } else {
+//                location = selectCtx.table_source(selectCtx.table_source().size() - 1).stop;
+//            }
+//        } else {
+//            location = selectCtx.group_by_item(groupBys.size() - 1).stop;
+//            buf.append(", ");
+//        }
+//        for (String col : cols)
+//            buf.append("v__sc_").append(col).append(", ");
+//        buf.replace(buf.length() - 2, buf.length(), "");
+//        rewriter.insertAfter(location, buf.toString());
+//    }
 
     protected class SelectListItem {
         private int index;
@@ -327,15 +371,8 @@ public abstract class QueryTransformer {
             }
         }
 
-        public void scale(TokenStreamRewriter rewriter) {
-            double scale = getScale();
-            if (scale == 1)
-                return;
-            rewriter.replace(ctx.start, ctx.stop, scale + "*" + expr + " AS " + getOuterAlias());
-        }
-
         protected double getScale() {
-            if (transformed.getSample() instanceof StratifiedSample)
+            if (stratifiedSample())
                 return 1;
             switch (getAggregateType()) {
                 case SUM:

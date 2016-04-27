@@ -14,8 +14,15 @@ public class UdaTransformer extends QueryTransformer {
     }
 
     @Override
-    protected String getTrialExpression(SelectListItem item, int trial) {
+    protected String getUniformTrialExpression(SelectListItem item, int trial) {
         return getUda(item) + "(" + getRandomSeed() + ", " + item.getInnerExpression() + ")";
+    }
+
+    @Override
+    protected String getStratifiedTrialExpression(SelectListItem item, int trial) {
+        if (item.getAggregateType() == TransformedQuery.AggregateType.SUM)
+            return getUda(item) + "(" + getRandomSeed() + ", (" + item.getInnerExpression() + ") * " + sampleAlias + "." + metaDataManager.getWeightColumn() + ")";
+        return getUda(item) + "(" + getRandomSeed() + ", " + item.getInnerExpression() + ", " + sampleAlias + "." + metaDataManager.getWeightColumn() + ")";
     }
 
     private int getRandomSeed() {
@@ -23,7 +30,9 @@ public class UdaTransformer extends QueryTransformer {
     }
 
     private String getUda(SelectListItem item) {
+        if (stratifiedSample() && item.getAggregateType() != TransformedQuery.AggregateType.SUM && !metaDataManager.supportsUdfOverloading())
+            // here the name of the UDA that supports weights differs
+            return "verdict.poisson_w" + item.getAggregateType().toString().toLowerCase();
         return "verdict.poisson_" + item.getAggregateType().toString().toLowerCase();
     }
-
 }

@@ -50,7 +50,7 @@ TinyIntVal Poisson(FunctionContext* context, const IntVal& index) {
 
 
 /*
-COUNT(seed, val)
+COUNT(seed, val, [weight])
 */
 
 void CountInit(FunctionContext* context, BigIntVal* val) {
@@ -61,6 +61,11 @@ void CountInit(FunctionContext* context, BigIntVal* val) {
 void CountUpdate(FunctionContext* context, const IntVal& seed, const DoubleVal& input, BigIntVal* val) {
   if (input.is_null) return;
   val->val += poisson();
+}
+
+void CountUpdate(FunctionContext* context, const IntVal& seed, const DoubleVal& input, const DoubleVal& weight, BigIntVal* val) {
+  if (input.is_null) return;
+  val->val += (long)(poisson() * weight.val);
 }
 
 void CountMerge(FunctionContext* context, const BigIntVal& src, BigIntVal* dst) {
@@ -119,7 +124,7 @@ DoubleVal SumFinalize(FunctionContext* context, const DoubleVal& val) {
 
 
 /*
-AVG(seed, val)
+AVG(seed, val, [weight])
 */
 
 struct AvgStruct {
@@ -140,6 +145,14 @@ if (input.is_null) return;
 	char p = poisson();
   avg->sum += input.val * p;
   avg->count += p;
+}
+
+void AvgUpdate(FunctionContext* context,const IntVal& seed, const DoubleVal& input, const DoubleVal& weight, StringVal* val) {
+if (input.is_null) return;
+   AvgStruct* avg = reinterpret_cast<AvgStruct*>(val->ptr);
+	char p = poisson();
+  avg->sum += input.val * p * weight.val;
+  avg->count += p * weight.val;
 }
 
 void AvgMerge(FunctionContext* context, const StringVal& src, StringVal* dst) {

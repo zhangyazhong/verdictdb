@@ -32,7 +32,9 @@ public class HiveMetaDataManager extends MetaDataManager {
                     "drop function if exists " + METADATA_DATABASE + ".poisson; create function " + METADATA_DATABASE + ".poisson as 'edu.umich.tajik.verdict.hive.udf.Poisson';\n" +
                     "drop function if exists " + METADATA_DATABASE + ".poisson_sum; create function " + METADATA_DATABASE + ".poisson_sum as 'edu.umich.tajik.verdict.hive.uda.Sum';\n" +
                     "drop function if exists " + METADATA_DATABASE + ".poisson_count; create function " + METADATA_DATABASE + ".poisson_count as 'edu.umich.tajik.verdict.hive.uda.Count';\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson_avg; create function " + METADATA_DATABASE + ".poisson_avg as 'edu.umich.tajik.verdict.hive.uda.Avg'";
+                    "drop function if exists " + METADATA_DATABASE + ".poisson_avg; create function " + METADATA_DATABASE + ".poisson_avg as 'edu.umich.tajik.verdict.hive.uda.Avg'" +
+                    "drop function if exists " + METADATA_DATABASE + ".poisson_wcount; create function " + METADATA_DATABASE + ".poisson_count as 'edu.umich.tajik.verdict.hive.uda.WeightedCount';\n" +
+                    "drop function if exists " + METADATA_DATABASE + ".poisson_wavg; create function " + METADATA_DATABASE + ".poisson_avg as 'edu.umich.tajik.verdict.hive.uda.WeightedAvg'";
             for (String q : initStatements.split(";"))
                 if (!q.trim().isEmpty())
                     executeStatement(q);
@@ -47,7 +49,7 @@ public class HiveMetaDataManager extends MetaDataManager {
 
     protected void createStratifiedSample(StratifiedSample sample) throws SQLException {
         long tableSize = getTableSize(sample.getTableName());
-        String originalStrataCounts = getRandomTempTableName(), sampleWithoutWeights = getRandomTempTableName(), strataRatios = getRandomTempTableName();
+        String originalStrataCounts = getRandomTempTableName(), sampleWithoutWeights = getRandomTempTableName(), strataWeights = getRandomTempTableName();
         try {
             String strataCols = sample.getStrataColumnsString(getIdentifierWrappingChar());
             System.out.println("Collecting strata stats...");
@@ -65,17 +67,18 @@ public class HiveMetaDataManager extends MetaDataManager {
             System.out.println("Creating sample... (This can take minutes)");
             executeStatement("create table " + sampleWithoutWeights + " as select " + cols + " from (select " + cols + ", rank() over (partition by " + strataCols + " order by rand()) as rnk from " + sample.getTableName() + ") s where rnk <= " + rowPerStratum + "");
             System.out.println("Calculating strata weights...");
-            executeStatement("create table  " + strataRatios + " as select tw." + strataCols.replaceAll(",", ",tw.") + ", tw.cnt/sw.cnt as v__ratio from (select " + strataCols + ", count(*) as cnt from " + sampleWithoutWeights + " group by " + strataCols + ") as sw join " + originalStrataCounts + " as tw on " + sample.getJoinCond("sw", "tw", getIdentifierWrappingChar()));
+            executeStatement("create table  " + strataWeights + " as select tw." + strataCols.replaceAll(",", ",tw.") + ", tw.cnt/sw.cnt as " + getWeightColumn() + " from (select " + strataCols + ", count(*) as cnt from " + sampleWithoutWeights + " group by " + strataCols + ") as sw join " + originalStrataCounts + " as tw on " + sample.getJoinCond("sw", "tw", getIdentifierWrappingChar()));
             buf = new StringBuilder();
             buf.append("create table ")
                     .append(getSampleFullName(sample))
                     .append(" stored as parquet as select s.")
                     .append(cols.replaceAll(",", ",s."))
-                    .append(", r.v__ratio");
+                    .append(", r.")
+                    .append(getWeightColumn());
             for (int i = 1; i <= sample.getPoissonColumns(); i++)
                 buf.append("," + METADATA_DATABASE + ".poisson(cast(rand() * ").append(i).append(" as int)) as v__p").append(i);
             buf.append(" from ")
-                    .append(strataRatios)
+                    .append(strataWeights)
                     .append(" as r join ")
                     .append(sampleWithoutWeights)
                     .append(" as s on ")
@@ -83,7 +86,7 @@ public class HiveMetaDataManager extends MetaDataManager {
             executeStatement(buf.toString());
         } finally {
             executeStatement("drop table if exists " + originalStrataCounts);
-            executeStatement("drop table if exists " + strataRatios);
+            executeStatement("drop table if exists " + strataWeights);
             executeStatement("drop table if exists " + sampleWithoutWeights);
         }
 
@@ -146,7 +149,7 @@ public class HiveMetaDataManager extends MetaDataManager {
 
         while (columns.next()) {
             String columnName = columns.getString(1);
-            if(columnName.isEmpty())
+            if (columnName.isEmpty())
                 break;
             res.add(columnName);
         }
@@ -169,5 +172,10 @@ public class HiveMetaDataManager extends MetaDataManager {
         return "select cast(name as varchar(30)) as name, cast(table_name as varchar(20)) as `original table`, cast(round(comp_ratio*100,3) as varchar(8)) as `size (%)`, cast(row_count as varchar(10)) as `rows`, cast(poisson_cols as varchar(15)) as `poisson columns`, strata_cols as `stratified by` from " + METADATA_DATABASE + ".sample"
                 + (conditions != null ? " where " + conditions : "")
                 + " order by `original table`, name";
+    }
+
+    @Override
+    public boolean supportsUdfOverloading(){
+        return false;
     }
 }

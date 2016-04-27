@@ -11,17 +11,17 @@ public class StoredTransformer extends QueryTransformer {
     }
 
     @Override
-    protected String getBootstrapTrials(SelectListItem item) {
+    protected String getUniformBootstrapTrials(SelectListItem item) {
         if (transformed.getSample().getPoissonColumns() < bootstrapTrials) {
             int requestedTrials = bootstrapTrials;
             bootstrapTrials = transformed.getSample().getPoissonColumns();
             System.err.println("WARNING: Selected sample has just " + bootstrapTrials + " Poisson number columns, however bootstrap.trials is set to " + requestedTrials + " which is more than available Poisson number columns. Performing " + bootstrapTrials + " bootstrap trials...");
         }
-        return super.getBootstrapTrials(item);
+        return super.getUniformBootstrapTrials(item);
     }
 
     @Override
-    protected String getTrialExpression(SelectListItem item, int trial) {
+    protected String getUniformTrialExpression(SelectListItem item, int trial) {
         String pref = metaDataManager.getPossionColumnPrefix();
         switch (item.getAggregateType()) {
             case AVG:
@@ -30,6 +30,22 @@ public class StoredTransformer extends QueryTransformer {
                 return "sum((" + item.getInnerExpression() + ") * " + pref + trial + ")";
             case COUNT:
                 return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * " + pref + trial + ")";
+            default:
+                return null;
+        }
+    }
+
+    @Override
+    protected String getStratifiedTrialExpression(SelectListItem item, int trial) {
+        String weightColumn = sampleAlias + metaDataManager.getWeightColumn();
+        String pref = metaDataManager.getPossionColumnPrefix();
+        switch (item.getAggregateType()) {
+            case AVG:
+                return "sum((" + item.getInnerExpression() + ") * " + pref + trial + " * " + weightColumn + ")/sum(" + pref + trial + " * " + weightColumn + ")";
+            case SUM:
+                return "sum((" + item.getInnerExpression() + ") * " + pref + trial + " * " + weightColumn + ")";
+            case COUNT:
+                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * " + pref + trial + " * " + weightColumn + ")";
             default:
                 return null;
         }

@@ -6,9 +6,11 @@ mvn assembly:single
 
 in Hive shell:
 
-delete jar /home/cloudera/shared/udf/hive/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
-add jar /home/cloudera/shared/udf/hive/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
+delete jar /home/cloudera/Desktop/udf/hive/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
+add jar /home/cloudera/Desktop/udf/hive/target/hive-extensions-1.0-SNAPSHOT-jar-with-dependencies.jar;
 drop function if exists verdict.poisson; create function verdict.poisson as 'edu.umich.tajik.verdict.hive.udf.Poisson';
 drop function if exists verdict.poisson_sum; create function verdict.poisson_sum as 'edu.umich.tajik.verdict.hive.uda.Sum';
 drop function if exists verdict.poisson_count; create function verdict.poisson_count as 'edu.umich.tajik.verdict.hive.uda.Count';
 drop function if exists verdict.poisson_avg; create function verdict.poisson_avg as 'edu.umich.tajik.verdict.hive.uda.Avg';
+drop function if exists verdict.poisson_wcount; create function verdict.poisson_wcount as 'edu.umich.tajik.verdict.hive.uda.WeightedCount';
+drop function if exists verdict.poisson_wavg; create function verdict.poisson_wavg as 'edu.umich.tajik.verdict.hive.uda.WeightedAvg';

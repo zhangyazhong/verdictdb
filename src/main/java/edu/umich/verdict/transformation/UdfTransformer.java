@@ -10,7 +10,7 @@ public class UdfTransformer extends QueryTransformer {
     }
 
     @Override
-    protected String getTrialExpression(SelectListItem item, int trial) {
+    protected String getUniformTrialExpression(SelectListItem item, int trial) {
         switch (item.getAggregateType()) {
             case AVG:
                 return "sum((" + item.getInnerExpression() + ") * verdict.poisson(" + trial + "))/sum(verdict.poisson(" + trial + "))";
@@ -18,6 +18,21 @@ public class UdfTransformer extends QueryTransformer {
                 return "sum((" + item.getInnerExpression() + ") * verdict.poisson(" + trial + "))";
             case COUNT:
                 return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * verdict.poisson(" + trial + "))";
+            default:
+                return null;
+        }
+    }
+
+    @Override
+    protected String getStratifiedTrialExpression(SelectListItem item, int trial) {
+        String weightColumn = sampleAlias + metaDataManager.getWeightColumn();
+        switch (item.getAggregateType()) {
+            case AVG:
+                return "sum((" + item.getInnerExpression() + ") * verdict.poisson(" + trial + ") * " + weightColumn + ")/sum(verdict.poisson(" + trial + ") * " + weightColumn + ")";
+            case SUM:
+                return "sum((" + item.getInnerExpression() + ") * verdict.poisson(" + trial + ") * " + weightColumn + ")";
+            case COUNT:
+                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * verdict.poisson(" + trial + ") * " + weightColumn + ")";
             default:
                 return null;
         }

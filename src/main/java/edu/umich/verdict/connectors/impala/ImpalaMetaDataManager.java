@@ -31,9 +31,11 @@ public class ImpalaMetaDataManager extends MetaDataManager {
             String lib = udfBinHdfs + "/verdict-impala-udf.so";
             String initStatements = "drop function if exists " + METADATA_DATABASE + ".poisson(int); create function " + METADATA_DATABASE + ".poisson (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
                     "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_count(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_count(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_count(int, double, double); create aggregate function " + METADATA_DATABASE + ".poisson_count(int, double, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
                     "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_sum(int, int); create aggregate function " + METADATA_DATABASE + ".poisson_sum(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
                     "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_sum(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_sum(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
-                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_avg(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_avg(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
+                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_avg(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_avg(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";" +
+                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_avg(int, double, double); create aggregate function " + METADATA_DATABASE + ".poisson_avg(int, double, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
             for (String q : initStatements.split(";"))
                 if (!q.trim().isEmpty())
                     executeStatement(q);
@@ -42,7 +44,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
 
     protected void createStratifiedSample(StratifiedSample sample) throws SQLException {
         long tableSize = getTableSize(sample.getTableName());
-        String originalStrataCounts = getRandomTempTableName(), sampleWithoutWeights = getRandomTempTableName(), strataRatios = getRandomTempTableName();
+        String originalStrataCounts = getRandomTempTableName(), sampleWithoutWeights = getRandomTempTableName(), strataWeights = getRandomTempTableName();
         try {
             String strataCols = sample.getStrataColumnsString(getIdentifierWrappingChar());
             System.out.println("Collecting strata stats...");
@@ -61,17 +63,18 @@ public class ImpalaMetaDataManager extends MetaDataManager {
             hiveConnector.executeStatement("create table " + sampleWithoutWeights + " as select " + cols + " from (select " + cols + ", rank() over (partition by " + strataCols + " order by rand()) as rnk from " + sample.getTableName() + ") s where rnk <= " + rowPerStratum + "");
             executeStatement("invalidate metadata");
             System.out.println("Calculating strata weights...");
-            executeStatement("create table  " + strataRatios + " as (select tw." + strataCols.replaceAll(",", ",tw.") + ", tw.cnt/sw.cnt as v__ratio from (select " + strataCols + ", count(*) as cnt from " + sampleWithoutWeights + " group by " + strataCols + ") as sw join " + originalStrataCounts + " as tw on " + sample.getJoinCond("sw", "tw", getIdentifierWrappingChar()) + ")");
+            executeStatement("create table  " + strataWeights + " as (select tw." + strataCols.replaceAll(",", ",tw.") + ", tw.cnt/sw.cnt as " + getWeightColumn() + " from (select " + strataCols + ", count(*) as cnt from " + sampleWithoutWeights + " group by " + strataCols + ") as sw join " + originalStrataCounts + " as tw on " + sample.getJoinCond("sw", "tw", getIdentifierWrappingChar()) + ")");
             buf = new StringBuilder();
             buf.append("create table ")
                     .append(getSampleFullName(sample))
                     .append(" stored as parquet as (select s.")
                     .append(cols.replaceAll(",", ",s."))
-                    .append(", r.v__ratio");
+                    .append(", r.")
+                    .append(getWeightColumn());
             for (int i = 1; i <= sample.getPoissonColumns(); i++)
                 buf.append("," + METADATA_DATABASE + ".poisson(").append(i).append(") as v__p").append(i);
             buf.append(" from ")
-                    .append(strataRatios)
+                    .append(strataWeights)
                     .append(" as r join ")
                     .append(sampleWithoutWeights)
                     .append(" as s on ")
@@ -81,7 +84,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
             executeStatement("invalidate metadata");
         } finally {
             executeStatement("drop table if exists " + originalStrataCounts);
-            executeStatement("drop table if exists " + strataRatios);
+            executeStatement("drop table if exists " + strataWeights);
             executeStatement("drop table if exists " + sampleWithoutWeights);
         }
 
