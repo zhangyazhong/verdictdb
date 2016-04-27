@@ -29,7 +29,8 @@ class ErrorEstimationAccuracy() {
       |from
       |lineitem40
       |where
-      |shipdate <= '1998-09-01'
+      |shipdate <= '1996-01-01'
+      |and linestatus = 'F'
     """.stripMargin)
   var exacts: Array[Array[Double]] = null
   var approximates: Array[Array[Array[ApproxResult]]] = null
