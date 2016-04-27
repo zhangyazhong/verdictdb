@@ -18,4 +18,9 @@ public class IdenticalTransformer extends QueryTransformer {
     protected String getUniformTrialExpression(SelectListItem item, int trial) {
         return null;
     }
+
+    @Override
+    protected String getStratifiedTrialExpression(SelectListItem item, int trial) {
+        return null;
+    }
 }
