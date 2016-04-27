@@ -27,7 +27,7 @@ public abstract class QueryTransformer {
 
     protected TsqlParser.Select_listContext selectList = null;
     ArrayList<SelectListItem> selectItems = new ArrayList<>();
-//    ArrayList<SelectListItem> groupBys = new ArrayList<>();
+    //    ArrayList<SelectListItem> groupBys = new ArrayList<>();
     protected String sampleAlias;
 
     public static QueryTransformer forConfig(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
@@ -170,7 +170,7 @@ public abstract class QueryTransformer {
                 expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")";
                 break;
             case AVG:
-                expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")/" + transformed.getSample().getTableSize();
+                expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")/sum(" + sampleAlias + "." + weightColumn + ")";
                 break;
         }
 
