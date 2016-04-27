@@ -260,11 +260,12 @@ class ErrorEstimationAccuracy() {
 }
 
 object ErrorEstimationAccuracy {
-  def run(trials: Int = 50, confidence: Double = .95, methods: Seq[String] = Seq("uda", "udf", "stored")): Unit = {
+  def run(trials: Int = 50, confidence: Double = .95, methods: Seq[String] = Seq("uda", "udf", "stored"), stratified: Boolean = false): Unit = {
     methods.map((trials, confidence * 100, _))
       .foreach(conf => {
         val etest = new ErrorEstimationAccuracy()
         //      etest.nSamples = 1000
+        etest.conf.set("bootstrap.sample_type", if (stratified) "stratified" else "uniform")
         etest.conf.set("bootstrap.trials", conf._1 + "")
         etest.conf.set("bootstrap.confidence", conf._2 + "%")
         etest.conf.set("bootstrap.method", conf._3)
