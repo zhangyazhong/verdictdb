@@ -165,10 +165,13 @@ public abstract class QueryTransformer {
         switch (item.aggregateType) {
             case COUNT:
                 expr = "sum(((" + expr + ")/(" + expr + "))*" + sampleAlias + "." + weightColumn + ")";
+                break;
             case SUM:
                 expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")";
+                break;
             case AVG:
                 expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")/" + transformed.getSample().getTableSize();
+                break;
         }
 
         rewriter.replace(item.ctx.start, item.ctx.stop, expr + " AS " + item.getOuterAlias());
