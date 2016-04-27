@@ -17,7 +17,7 @@ public class UdfTransformer extends QueryTransformer {
             case SUM:
                 return "sum((" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + "))";
             case COUNT:
-                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + "))";
+                return "sum(case when (" + item.getInnerExpression() + ") is null then 0 else " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + ") end)";
             default:
                 return null;
         }
@@ -25,14 +25,14 @@ public class UdfTransformer extends QueryTransformer {
 
     @Override
     protected String getStratifiedTrialExpression(SelectListItem item, int trial) {
-        String weightColumn = sampleAlias + metaDataManager.getWeightColumn();
+        String weightColumn = sampleAlias + "." + metaDataManager.getWeightColumn();
         switch (item.getAggregateType()) {
             case AVG:
                 return "sum((" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + ") * " + weightColumn + ")/sum(" + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + ") * " + weightColumn + ")";
             case SUM:
                 return "sum((" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + ") * " + weightColumn + ")";
             case COUNT:
-                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + ") * " + weightColumn + ")";
+                return "sum(case when (" + item.getInnerExpression() + ") is null then 0 else " + MetaDataManager.METADATA_DATABASE + ".poisson(" + trial + ") * " + weightColumn + " end)";
             default:
                 return null;
         }

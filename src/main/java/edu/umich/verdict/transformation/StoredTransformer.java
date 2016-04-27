@@ -29,7 +29,7 @@ public class StoredTransformer extends QueryTransformer {
             case SUM:
                 return "sum((" + item.getInnerExpression() + ") * " + pref + trial + ")";
             case COUNT:
-                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * " + pref + trial + ")";
+                return "sum(case when (" + item.getInnerExpression() + ") is null then 0 else " + pref + trial + " end)";
             default:
                 return null;
         }
@@ -37,7 +37,7 @@ public class StoredTransformer extends QueryTransformer {
 
     @Override
     protected String getStratifiedTrialExpression(SelectListItem item, int trial) {
-        String weightColumn = sampleAlias + metaDataManager.getWeightColumn();
+        String weightColumn = sampleAlias + "." + metaDataManager.getWeightColumn();
         String pref = metaDataManager.getPossionColumnPrefix();
         switch (item.getAggregateType()) {
             case AVG:
@@ -45,7 +45,7 @@ public class StoredTransformer extends QueryTransformer {
             case SUM:
                 return "sum((" + item.getInnerExpression() + ") * " + pref + trial + " * " + weightColumn + ")";
             case COUNT:
-                return "sum((" + item.getInnerExpression() + ")/(" + item.getInnerExpression() + ") * " + pref + trial + " * " + weightColumn + ")";
+                return "sum(case when (" + item.getInnerExpression() + ") is null then 0 else " + pref + trial + " * " + weightColumn + " end)";
             default:
                 return null;
         }

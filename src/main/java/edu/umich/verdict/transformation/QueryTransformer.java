@@ -164,7 +164,7 @@ public abstract class QueryTransformer {
         String expr = item.getInnerExpression(), weightColumn = metaDataManager.getWeightColumn();
         switch (item.aggregateType) {
             case COUNT:
-                expr = "sum(((" + expr + ")/(" + expr + "))*" + sampleAlias + "." + weightColumn + ")";
+                expr = "sum(case when (" + expr + ") is null then 0 else " + sampleAlias + "." + weightColumn + " end)";
                 break;
             case SUM:
                 expr = "sum((" + expr + ")*" + sampleAlias + "." + weightColumn + ")";
