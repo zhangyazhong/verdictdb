@@ -161,10 +161,6 @@ public abstract class QueryTransformer {
     }
 
     protected void replaceStratifiedAggregate(SelectListItem item) {
-        double scale = item.getScale();
-        if (scale == 1)
-            return;
-
         String expr = item.getInnerExpression(), weightColumn = metaDataManager.getWeightColumn();
         switch (item.aggregateType) {
             case COUNT:
