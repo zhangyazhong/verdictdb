@@ -18,6 +18,7 @@ class ErrorEstimationAccuracy() {
   var sampleSize = 0.01
   var table = "lineitem40"
   var nPoissonCols = 100
+  var strataColumns = "returnflag,linestatus"
   var queries = Array(
     """
       |select
@@ -29,8 +30,6 @@ class ErrorEstimationAccuracy() {
       |lineitem40
       |where
       |shipdate <= '1998-09-01'
-      |and returnflag = 'A'
-      |and linestatus = 'F'
     """.stripMargin)
   var exacts: Array[Array[Double]] = null
   var approximates: Array[Array[Array[ApproxResult]]] = null
@@ -41,12 +40,15 @@ class ErrorEstimationAccuracy() {
     Parser.parse(q).run(conf, connector)
   }
 
-  def sampleName(i: Int) = s"error_test_${table}_s$i"
+  def sampleName(i: Int) = s"error_test${if (conf.get("bootstrap.sample_type").equals("stratified")) "_stra" else ""}_${table}_s$i"
 
   def createSamples(): Unit = {
     for (i <- 1 to nSamples) {
       try {
-        execute(s"create sample ${sampleName(i)} from $table with size $sampleSize% store $nPoissonCols poisson columns")
+        if (conf.get("bootstrap.sample_type").equals("stratified"))
+          execute(s"create sample ${sampleName(i)} from $table with size $sampleSize% store $nPoissonCols poisson columns stratified by " + strataColumns)
+        else
+          execute(s"create sample ${sampleName(i)} from $table with size $sampleSize% store $nPoissonCols poisson columns")
       } catch {
         case e: Exception => println(e.getMessage)
       }
@@ -246,6 +248,7 @@ class ErrorEstimationAccuracy() {
     pw.println(s"trials = ${conf.get("bootstrap.trials")}")
     pw.println(s"method = ${conf.get("bootstrap.method")}")
     pw.println(s"sampleType = ${conf.get("bootstrap.sample_type")}")
+    pw.println(s"strataColumns = ${strataColumns}")
     pw.close()
     queries.indices.foreach(i => {
       new File(s"error-test/$dir/$i").mkdir()
