@@ -253,7 +253,7 @@ object ErrorEstimationAccuracy {
     methods.foreach(m => {
         val etest = new ErrorEstimationAccuracy()
         etest.nSamples = nSamples
-        etest.queries = Source.fromFile(new File(this.getClass.getClassLoader.getResource(s"expr/querySet$querySet.sql").getFile)).getLines().toArray
+        etest.queries = Source.fromFile(new File(this.getClass.getClassLoader.getResource(s"expr/querySet$querySet.sql").getFile)).mkString.split(";")
         etest.conf.set("bootstrap.sample_type", if (stratified) "stratified" else "uniform")
         etest.conf.set("bootstrap.trials", trials + "")
         etest.conf.set("bootstrap.confidence", (confidence*100) + "%")
