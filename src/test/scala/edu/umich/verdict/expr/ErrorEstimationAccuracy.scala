@@ -19,19 +19,7 @@ class ErrorEstimationAccuracy() {
   var table = "lineitem40"
   var nPoissonCols = 100
   var strataColumns = "returnflag,linestatus"
-  var queries = Array(
-    """
-      |select
-      |sum(quantity) as sum_qty,
-      |sum(extendedprice) as sum_base_price,
-      |avg(extendedprice) as avg_price,
-      |count(*) as count_order
-      |from
-      |lineitem40
-      |where
-      |shipdate <= '1996-01-01'
-      |and linestatus = 'F'
-    """.stripMargin)
+  var queries = Array[String]()
   var exacts: Array[Array[Double]] = null
   var approximates: Array[Array[Array[ApproxResult]]] = null
   var dir: String = null
@@ -261,15 +249,15 @@ class ErrorEstimationAccuracy() {
 }
 
 object ErrorEstimationAccuracy {
-  def run(trials: Int = 50, confidence: Double = .95, methods: Seq[String] = Seq("uda", "udf", "stored"), stratified: Boolean = false): Unit = {
-    methods.map((trials, confidence * 100, _))
-      .foreach(conf => {
+  def run(querySet: Int, trials: Int = 50, confidence: Double = .95, methods: Seq[String] = Seq("uda", "udf", "stored"), stratified: Boolean = false, nSamples: Int = 1000): Unit = {
+    methods.foreach(m => {
         val etest = new ErrorEstimationAccuracy()
-        //      etest.nSamples = 1000
+        etest.nSamples = nSamples
+        etest.queries = Source.fromFile(new File(this.getClass.getClassLoader.getResource(s"expr/querySet$querySet.sql").getFile)).getLines().toArray
         etest.conf.set("bootstrap.sample_type", if (stratified) "stratified" else "uniform")
-        etest.conf.set("bootstrap.trials", conf._1 + "")
-        etest.conf.set("bootstrap.confidence", conf._2 + "%")
-        etest.conf.set("bootstrap.method", conf._3)
+        etest.conf.set("bootstrap.trials", trials + "")
+        etest.conf.set("bootstrap.confidence", (confidence*100) + "%")
+        etest.conf.set("bootstrap.method", m)
         etest.run()
       })
   }
