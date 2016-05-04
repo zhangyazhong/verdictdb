@@ -128,7 +128,7 @@ public abstract class MetaDataManager {
             buf.append(" and stratified=true");
         if (table != null)
             buf.append(" and table_name='").append(table).append("' ");
-        return buf.toString();
+        return getSamplesInfoQuery(buf.toString());
     }
 
     public ResultSet getSamplesInfo(String type, String table) throws SQLException {
@@ -178,11 +178,11 @@ public abstract class MetaDataManager {
         return "v__p";
     }
 
-    public String getWeightColumn(){
+    public String getWeightColumn() {
         return "v__weight";
     }
 
-    public boolean supportsUdfOverloading(){
+    public boolean supportsUdfOverloading() {
         return true;
     }
 }
