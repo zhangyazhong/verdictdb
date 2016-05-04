@@ -27,13 +27,13 @@ public class VResultSet implements ResultSet {
         transformedQuery = q;
     }
 
-    public String getApproximationInfo(){
+    public String getApproximationInfo() {
         StringBuilder buf = new StringBuilder();
-        buf.append("Sample Size: ").append(Math.round(transformedQuery.getSample().getCompRatio()*100000)/1000+"%").append("\n");
+        buf.append("Sample Size: ").append((double) Math.round(transformedQuery.getSample().getCompRatio() * 100000) / 1000 + "%").append("\n");
         buf.append("Sample Name: ").append(transformedQuery.getSample().getName()).append("\n");
         buf.append("Bootstrap Trials: ").append(transformedQuery.getBootstrapTrials()).append("\n");
         buf.append("Bootstrap Method: ").append(transformedQuery.getMethod()).append("\n");
-        buf.append("Estimation Confidence: ").append(transformedQuery.getConfidence()*100+"%").append("\n");
+        buf.append("Estimation Confidence: ").append(transformedQuery.getConfidence() * 100 + "%").append("\n");
 
         return buf.toString();
     }
