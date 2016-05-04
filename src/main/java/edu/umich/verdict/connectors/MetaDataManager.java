@@ -132,7 +132,7 @@ public abstract class MetaDataManager {
     }
 
     public ResultSet getSamplesInfo(String type, String table) throws SQLException {
-        return executeQuery(getSamplesInfoQuery(getSamplesInfoQuery(type, table)));
+        return executeQuery(getSamplesInfoQuery(type, table));
     }
 
     public void deleteSample(String name) throws SQLException {
