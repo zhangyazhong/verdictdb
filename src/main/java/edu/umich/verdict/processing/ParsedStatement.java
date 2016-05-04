@@ -3,6 +3,7 @@ package edu.umich.verdict.processing;
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.VerdictException;
 import edu.umich.verdict.connectors.DbConnector;
+import edu.umich.verdict.jdbc.VStatement;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -45,4 +46,5 @@ public class ParsedStatement {
     public String toString() {
         return str.replaceAll("(;\\s*)+$", "");
     }
+
 }

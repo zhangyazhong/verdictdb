@@ -4,6 +4,7 @@ import edu.umich.verdict.Configuration;
 import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.jdbc.VResultSet;
+import edu.umich.verdict.jdbc.VStatement;
 import edu.umich.verdict.models.StratifiedSample;
 import edu.umich.verdict.transformation.QueryTransformer;
 import edu.umich.verdict.transformation.TransformedQuery;
@@ -12,6 +13,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class SelectStatement extends ParsedStatement {
     protected TokenStreamRewriter rewriter;
@@ -41,11 +43,6 @@ public class SelectStatement extends ParsedStatement {
             rs = connector.executeQuery(q);
         }
         return rs;
-    }
-
-    public String getTransformed(Configuration conf, DbConnector connector) throws SQLException {
-        TransformedQuery transformed = QueryTransformer.forConfig(conf, connector.getMetaDataManager(), this).transform();
-        return transformed.toString();
     }
 
     public TokenStreamRewriter getRewriter() {
