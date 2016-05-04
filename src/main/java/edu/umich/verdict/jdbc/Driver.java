@@ -23,7 +23,7 @@ public class Driver implements java.sql.Driver {
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
-        // jdbc:verdict:dbms://host:port[/schema]
+        // jdbc:verdict:dbms://host:port[/schema][?config=/path/to/config/file]
         return url.substring(4, 13).equals(":verdict:");
     }
 

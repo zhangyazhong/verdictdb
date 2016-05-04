@@ -23,14 +23,16 @@ public class VConnection implements Connection {
     private final Configuration conf;
 
     public VConnection(String url, Properties info) throws SQLException {
-        // jdbc:verdict:dbms://host:port[/schema]
-        Pattern p = Pattern.compile("^jdbc:verdict:(?<dbms>\\w+)://(?<host>[\\.a-zA-Z0-9]+):(?<port>\\d+)(?<schema>/(\\w+))?$");
+        // jdbc:verdict:dbms://host:port[/schema][?config=/path/to/conf]
+        Pattern p = Pattern.compile("^jdbc:verdict:(?<dbms>\\w+)://(?<host>[\\.a-zA-Z0-9]+):(?<port>\\d+)(?<schema>/(\\w+))?(\\?config=(?<config>.*))?$");
         try {
             Matcher m = p.matcher(url);
             if (!m.find())
                 throw new SQLException("Invalid URL.");
             if (info.contains("config"))
                 conf = new Configuration(new File(info.getProperty("config")));
+            else if (m.group("config")!=null)
+                conf = new Configuration(new File(m.group("config")));
             else
                 conf = new Configuration(info);
             String dbms = m.group("dbms");

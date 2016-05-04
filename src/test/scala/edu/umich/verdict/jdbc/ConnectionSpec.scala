@@ -22,10 +22,14 @@ class ConnectionSpec extends VerdictFlatSpec with BeforeAndAfterAll {
     connection = DriverManager.getConnection("jdbc:verdict:impala://bigdata.eecs.umich.edu:21050", new Configuration(new File(this.getClass.getClassLoader.getResource("impala.conf").getFile)).toProperties)
     connection should not be null
   }
-//
-//  "JDBC Connection" should "connect to impala with correct schema" in {
-//    DriverManager.getConnection("jdbc:verdict:impala://bigdata.eecs.umich.edu:21050/verdict", new Configuration(new File(this.getClass.getClassLoader.getResource("impala.conf").getFile)).toProperties).getSchema shouldBe "verdict"
-//  }
+
+  it should "habdle config file in URL" in {
+    DriverManager.getConnection("jdbc:verdict:impala://bigdata.eecs.umich.edu:21050?config=" + this.getClass.getClassLoader.getResource("impala.conf").getPath) should not be null
+  }
+  //
+  //  "JDBC Connection" should "connect to impala with correct schema" in {
+  //    DriverManager.getConnection("jdbc:verdict:impala://bigdata.eecs.umich.edu:21050/verdict", new Configuration(new File(this.getClass.getClassLoader.getResource("impala.conf").getFile)).toProperties).getSchema shouldBe "verdict"
+  //  }
 
   it should "run non-select statements via prepareStatement" in {
     connection.prepareStatement("show tables").executeQuery() should not be null
