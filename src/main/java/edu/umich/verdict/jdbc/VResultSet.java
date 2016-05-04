@@ -18,15 +18,24 @@ public class VResultSet implements ResultSet {
     private final ExtraColumnsHandler extraColumns;
     private final ResultSet originalResultSet;
     private final int originalColumnCount;
+    private TransformedQuery transformedQuery;
 
     public VResultSet(ResultSet resultSet, TransformedQuery q, Configuration conf) throws InvalidConfigurationException {
         this.originalResultSet = resultSet;
         extraColumns = new ExtraColumnsHandler(resultSet, q, conf);
         originalColumnCount = q.getOriginalColumnsCount();
+        transformedQuery = q;
     }
 
     public String getApproximationInfo(){
-        return "TEst info...";
+        StringBuilder buf = new StringBuilder();
+        buf.append("Sample Size: ").append(Math.round(transformedQuery.getSample().getCompRatio()*100000)/1000+"%").append("\n");
+        buf.append("Sample Name: ").append(transformedQuery.getSample().getName()).append("\n");
+        buf.append("Bootstrap Trials: ").append(transformedQuery.getBootstrapTrials()).append("\n");
+        buf.append("Bootstrap Method: ").append(transformedQuery.getMethod()).append("\n");
+        buf.append("Estimation Confidence: ").append(transformedQuery.getConfidence()*100+"%").append("\n");
+
+        return buf.toString();
     }
 
     public ResultSetMetaData getMetaData() throws SQLException {
