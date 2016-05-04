@@ -1,12 +1,14 @@
 package edu.umich.verdict.processing;
 
 import edu.umich.verdict.Configuration;
+import edu.umich.verdict.VerdictException;
 import edu.umich.verdict.connectors.DbConnector;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class ParsedStatement {
     protected String str;
@@ -18,7 +20,7 @@ public class ParsedStatement {
     }
 
     //TODO: use customized exceptions
-    public ResultSet run(Configuration conf, DbConnector connector) throws Exception {
+    public ResultSet run(Configuration conf, DbConnector connector) throws SQLException, VerdictException {
         ResultSet rs;
         try {
             rs = connector.executeQuery(this.toString());

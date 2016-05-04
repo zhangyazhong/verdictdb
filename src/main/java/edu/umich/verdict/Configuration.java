@@ -2,6 +2,7 @@ package edu.umich.verdict;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.Scanner;
 
 public class Configuration {
@@ -9,6 +10,12 @@ public class Configuration {
 
     public Configuration() {
         setDefaults();
+    }
+
+    public Configuration(Properties properties) {
+        this();
+        for (String prop : properties.stringPropertyNames())
+            this.set(prop, properties.getProperty(prop));
     }
 
     public Configuration(File file) throws FileNotFoundException {
@@ -76,5 +83,13 @@ public class Configuration {
     public Configuration set(String key, String value) {
         configs.put(key.toLowerCase(), value);
         return this;
+    }
+
+    public Properties toProperties() {
+        Properties p = new Properties();
+        for (String key : configs.keySet()) {
+            p.setProperty(key, configs.get(key));
+        }
+        return p;
     }
 }

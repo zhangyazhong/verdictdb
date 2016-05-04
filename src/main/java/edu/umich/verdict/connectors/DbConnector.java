@@ -29,7 +29,7 @@ public abstract class DbConnector {
     protected DbConnector(Configuration conf) throws SQLException, ClassNotFoundException, InvalidConfigurationException {
         String name = this.getDbmsName().toLowerCase();
         initialize(conf);
-        connect(getConnectionString(conf.get(name + ".host"), conf.get(name + ".port")), conf.get(name + ".user"), conf.get(name + ".password"));
+        connect(getConnectionString(conf.get(name + ".host"), conf.get(name + ".port"), conf.get(name + ".schema")), conf.get(name + ".user"), conf.get(name + ".password"));
         this.metaDataManager = createMetaDataManager();
     }
 
@@ -48,8 +48,8 @@ public abstract class DbConnector {
 
     protected abstract String getDbmsName();
 
-    protected String getConnectionString(String host, String port) {
-        return "jdbc:" + getProtocolName() + "://" + host + ":" + port;
+    protected String getConnectionString(String host, String port, String schema) {
+        return "jdbc:" + getProtocolName() + "://" + host + ":" + port + (schema == null ? "" : "/" + schema);
     }
 
     protected void connect(String connectionString, String user, String password) throws SQLException, ClassNotFoundException {
@@ -82,5 +82,9 @@ public abstract class DbConnector {
 
     public MetaDataManager getMetaDataManager() {
         return this.metaDataManager;
+    }
+
+    public boolean isClosed() throws SQLException {
+        return connection.isClosed();
     }
 }

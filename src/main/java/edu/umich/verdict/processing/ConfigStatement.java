@@ -9,7 +9,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.sql.ResultSet;
 
-public class ConfigStatement extends ParsedStatement {
+public class ConfigStatement extends VerdictStatement {
     private final String key;
     private final String value;
 

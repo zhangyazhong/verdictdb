@@ -1,6 +1,8 @@
 package edu.umich.verdict.connectors;
 
-public class DbmsNotSupportedException extends Exception {
+import edu.umich.verdict.VerdictException;
+
+public class DbmsNotSupportedException extends VerdictException {
     private final ClassNotFoundException cause;
     private final String dbms;
 

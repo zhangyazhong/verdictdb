@@ -21,7 +21,9 @@ lazy val root = (project in file(".")).
   //assemblySettings
   settings(assemblySettings: _*).settings(
   assemblyOption in assembly ~= {_.copy(includeScala = false)},
-  jarName in assembly := "verdict.jar"
+  jarName in assembly := "verdict.jar",
+  test in assembly := {},
+  mainClass in assembly := Some("edu.umich.verdict.cli.Cli")
   ).
 
   //antlr4Settings

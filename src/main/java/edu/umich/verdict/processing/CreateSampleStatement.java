@@ -9,8 +9,9 @@ import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
-public class CreateSampleStatement extends ParsedStatement {
+public class CreateSampleStatement extends VerdictStatement {
     private Sample sample;
 
     public CreateSampleStatement(String str, ParseTree tree) {
@@ -31,7 +32,7 @@ public class CreateSampleStatement extends ParsedStatement {
     }
 
     @Override
-    public ResultSet run(Configuration conf, DbConnector connector) throws Exception {
+    public ResultSet run(Configuration conf, DbConnector connector) throws SQLException {
         try {
             info("Creating sample...");
             connector.getMetaDataManager().createSample(sample);

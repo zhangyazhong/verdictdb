@@ -1,6 +1,8 @@
 package edu.umich.verdict.connectors;
 
-public class CannotConnectException extends Exception {
+import edu.umich.verdict.VerdictException;
+
+public class CannotConnectException extends VerdictException {
     private final String dbms;
     private final Throwable cause;
 

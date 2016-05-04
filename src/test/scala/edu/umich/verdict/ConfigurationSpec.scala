@@ -59,4 +59,12 @@ class ConfigurationSpec extends VerdictFlatSpec with BeforeAndAfterAll {
     conf.getPercent("percent2") shouldBe 3.12 / 100
   }
 
+  it should "export appropriate Properties object" in {
+    conf.toProperties.get("key1") shouldBe "Value1"
+  }
+
+  it should "be initialized from a Properties object" in {
+    new Configuration(conf.toProperties).get("key1") shouldBe "Value1"
+  }
+
 }

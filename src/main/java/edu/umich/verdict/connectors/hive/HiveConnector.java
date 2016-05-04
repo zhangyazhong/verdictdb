@@ -17,7 +17,7 @@ public class HiveConnector extends DbConnector {
 
     @Override
     protected MetaDataManager createMetaDataManager() throws SQLException {
-        if(forImpala)
+        if (forImpala)
             return null;
         MetaDataManager metaDataManager = new HiveMetaDataManager(this, udfBin);
         metaDataManager.initialize();
@@ -31,8 +31,8 @@ public class HiveConnector extends DbConnector {
     }
 
     @Override
-    protected String getConnectionString(String host, String port) {
-        return super.getConnectionString(host, port) + "/default";
+    protected String getConnectionString(String host, String port, String schema) {
+        return super.getConnectionString(host, port, schema == null ? "default" : schema);
     }
 
     @Override

@@ -9,7 +9,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class DeleteSampleStatement extends ParsedStatement {
+public class DeleteSampleStatement extends VerdictStatement {
     private final String sample;
 
     public DeleteSampleStatement(String str, ParseTree tree) {

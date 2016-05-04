@@ -48,7 +48,7 @@ public abstract class MetaDataManager {
 
     //TODO: General implementation
     //TODO: cleanup if failed
-    public void createSample(Sample sample) throws Exception {
+    public void createSample(Sample sample) throws SQLException {
         loadSamples();
         for (Sample s : samples)
             if (s.getName().equals(sample.getName()))
@@ -120,7 +120,7 @@ public abstract class MetaDataManager {
                 + " order by table_name, name";
     }
 
-    public ResultSet getSamplesInfo(String type, String table) throws SQLException {
+    public String getSamplesInfoQuery(String type, String table) {
         StringBuilder buf = new StringBuilder(" true");
         if (type.equals("uniform"))
             buf.append(" and stratified<>true");
@@ -128,7 +128,11 @@ public abstract class MetaDataManager {
             buf.append(" and stratified=true");
         if (table != null)
             buf.append(" and table_name='").append(table).append("' ");
-        return executeQuery(getSamplesInfoQuery(buf.toString()));
+        return buf.toString();
+    }
+
+    public ResultSet getSamplesInfo(String type, String table) throws SQLException {
+        return executeQuery(getSamplesInfoQuery(getSamplesInfoQuery(type, table)));
     }
 
     public void deleteSample(String name) throws SQLException {

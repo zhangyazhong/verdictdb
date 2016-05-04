@@ -1,21 +1,30 @@
 package edu.umich.verdict.jdbc;
 
-import java.sql.Connection;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
+import java.sql.*;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 public class Driver implements java.sql.Driver {
+    static {
+        try {
+            DriverManager.registerDriver(new Driver());
+        }catch (SQLException e) {
+            System.err.println("Error occurred while registering Verdict driver:");
+            System.err.println(e.getMessage());
+        }
+    }
+
     @Override
     public Connection connect(String url, Properties info) throws SQLException {
-        return null;
+        if(acceptsURL(url))
+            return new VConnection(url, info);
+        throw new SQLException("URL is unrecognizable.");
     }
 
     @Override
     public boolean acceptsURL(String url) throws SQLException {
-        return false;
+        // jdbc:verdict:dbms://host:port[/schema]
+        return url.substring(4, 13).equals(":verdict:");
     }
 
     @Override
@@ -25,7 +34,7 @@ public class Driver implements java.sql.Driver {
 
     @Override
     public int getMajorVersion() {
-        return 0;
+        return 1;
     }
 
     @Override
@@ -35,7 +44,7 @@ public class Driver implements java.sql.Driver {
 
     @Override
     public boolean jdbcCompliant() {
-        return false;
+        return true;
     }
 
     @Override

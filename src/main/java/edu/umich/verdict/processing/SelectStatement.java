@@ -43,6 +43,11 @@ public class SelectStatement extends ParsedStatement {
         return rs;
     }
 
+    public String getTransformed(Configuration conf, DbConnector connector) throws SQLException {
+        TransformedQuery transformed = QueryTransformer.forConfig(conf, connector.getMetaDataManager(), this).transform();
+        return transformed.toString();
+    }
+
     public TokenStreamRewriter getRewriter() {
         return rewriter;
     }

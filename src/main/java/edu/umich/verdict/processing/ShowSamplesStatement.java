@@ -10,7 +10,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class ShowSamplesStatement extends ParsedStatement {
+public class ShowSamplesStatement extends VerdictStatement {
     private final String type;
     private final String table;
 
@@ -24,5 +24,9 @@ public class ShowSamplesStatement extends ParsedStatement {
     @Override
     public ResultSet run(Configuration conf, DbConnector connector) throws SQLException {
         return connector.getMetaDataManager().getSamplesInfo(type, table);
+    }
+
+    public String getQuery(DbConnector connector){
+        return connector.getMetaDataManager().getSamplesInfoQuery(type, table);
     }
 }
