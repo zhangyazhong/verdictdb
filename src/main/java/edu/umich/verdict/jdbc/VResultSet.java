@@ -25,6 +25,10 @@ public class VResultSet implements ResultSet {
         originalColumnCount = q.getOriginalColumnsCount();
     }
 
+    public String getApproximationInfo(){
+        return "TEst info...";
+    }
+
     public ResultSetMetaData getMetaData() throws SQLException {
         return new VResultSetMetaData(originalResultSet, extraColumns);
     }
