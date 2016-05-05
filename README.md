@@ -25,7 +25,7 @@ Currently we have developed drivers for:
 We plan to add drivers for some other popular DBMS's very soon.
 
 
-## 3. Get Verdict
+## 3. Getting Started
 
 ### 3.1. Requirements
 Before you can install and run Verdict, the following requirements should be installed:
