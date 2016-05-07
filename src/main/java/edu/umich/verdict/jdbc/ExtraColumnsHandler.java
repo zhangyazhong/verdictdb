@@ -28,32 +28,35 @@ class ExtraColumnsHandler {
         this.q = q;
         this.originalCount = q.getOriginalColumnsCount();
 
-        String[] extraColumns = conf.get("bootstrap.extra_columns").split("_");
         extraColumnsPerAggregate = 0;
-        ArrayList<ExtraColumnType> extraColumnsTypesList = new ArrayList<ExtraColumnType>();
+
+        String[] extraColumns = conf.get("error_columns").split(",");
+        ArrayList<ExtraColumnType> extraColumnsTypesList = new ArrayList<>();
         for (String extraColumn : extraColumns) {
+            if(extraColumn.trim().isEmpty())
+                continue;
             extraColumnsPerAggregate++;
-            switch (extraColumn) {
-                case "ci":
+            switch (extraColumn.trim()) {
+                case "conf_inv":
                     extraColumnsTypesList.add(ExtraColumnType.ConfidenceIntervalLower);
                     extraColumnsTypesList.add(ExtraColumnType.ConfidenceIntervalUpper);
                     extraColumnsPerAggregate++;
                     showIntervals = true;
                     break;
-                case "e":
+                case "err":
                     extraColumnsTypesList.add(ExtraColumnType.Error);
                     showErrors = true;
                     break;
-                case "ep":
+                case "err_percent":
                     extraColumnsTypesList.add(ExtraColumnType.ErrorPercentage);
                     showErrorPercentages = true;
                     break;
-                case "v":
+                case "var":
                     extraColumnsTypesList.add(ExtraColumnType.Variance);
                     showVariances = true;
                     break;
                 default:
-                    throw new InvalidConfigurationException("Invalid value for 'bootstrap.extra_columns': " + extraColumn);
+                    throw new InvalidConfigurationException("Invalid value for 'error_columns': " + extraColumn);
             }
         }
 
@@ -83,7 +86,7 @@ class ExtraColumnsHandler {
             if (originalResultSet.getObject(aggr.getColumn()) == null)
                 isNulls[j] = true;
             else {
-                if (showIntervals || showErrors) {
+                if (showIntervals || showErrors || showErrorPercentages) {
                     double estimatedAnswer = originalResultSet.getDouble(aggr.getColumn());
                     Arrays.sort(bootstrapResults, Comparator.comparing((Double x) -> Math.abs(x - estimatedAnswer)));
                     double bound = bootstrapResults[(int) Math.ceil(trials * q.getConfidence() - 1)];
@@ -93,7 +96,7 @@ class ExtraColumnsHandler {
                     if (showErrors)
                         errors[j] = Math.abs(bound - estimatedAnswer);
                     if (showErrorPercentages)
-                        errorPercentages[j] = 100 * Math.abs(bound - estimatedAnswer) / estimatedAnswer;
+                        errorPercentages[j] = Math.round(10000 * Math.abs(bound - estimatedAnswer) / estimatedAnswer)/100;
                 }
                 if (showVariances) {
                     variances[j] = getVariance(bootstrapResults);

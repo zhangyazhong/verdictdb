@@ -10,8 +10,8 @@ class ParserSpec extends VerdictFlatSpec{
   }
 
   it should "return a ConfigStatement for SET and GET statements" in {
-    Parser.parse("get bootstrap.sample_size") shouldBe a [ConfigStatement]
-    Parser.parse("set bootstrap = off") shouldBe a [ConfigStatement]
+    Parser.parse("get sample_size") shouldBe a [ConfigStatement]
+    Parser.parse("set approximation = off") shouldBe a [ConfigStatement]
   }
 
   it should "return a CreateSampleStatement for CREATE SAMPLE" in {

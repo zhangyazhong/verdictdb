@@ -4,14 +4,25 @@ import edu.umich.verdict.Configuration;
 import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.parser.TsqlParser;
-import org.antlr.v4.runtime.TokenStreamRewriter;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.sql.ResultSet;
+import java.util.Arrays;
+import java.util.HashSet;
 
 public class ConfigStatement extends VerdictStatement {
+    private static final HashSet validKeys = new HashSet<>(Arrays.asList(
+            "approximation",
+            "bootstrap.method",
+            "bootstrap.trials",
+            "confidence",
+            "sample_size",
+            "sample_type",
+            "error_columns"
+    ));
+
     private final String key;
-    private final String value;
+    private String value;
 
     public ConfigStatement(String str, ParseTree tree) {
         super(str, tree);
@@ -19,6 +30,8 @@ public class ConfigStatement extends VerdictStatement {
         if (ctx instanceof TsqlParser.Config_set_statementContext) {
             key = ((TsqlParser.Config_set_statementContext) ctx).key.getText();
             value = ((TsqlParser.Config_set_statementContext) ctx).value.getText() + (((TsqlParser.Config_set_statementContext) ctx).percent != null ? "%" : "");
+            if (value.startsWith("\"") && value.endsWith("\""))
+                value = value.substring(1, value.length() - 1);
         } else {
             key = ((TsqlParser.Config_get_statementContext) ctx).key.getText();
             value = null;
@@ -39,6 +52,6 @@ public class ConfigStatement extends VerdictStatement {
     }
 
     private boolean isValidKey(String key) {
-        return key.equals("approximation") || key.startsWith("bootstrap");
+        return validKeys.contains(key);
     }
 }

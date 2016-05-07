@@ -65,9 +65,9 @@ config_value
     | STRATIFIED
     | ON
     | OFF
-    | ID
+    | ID (',' ID)*
     | STRING
-    | DOUBLE_QUOTE_ID
+    | DOUBLE_QUOTE_STRING
     | DECIMAL
     | FLOAT
     ;
@@ -81,6 +81,9 @@ SHOW: S H O W;
 UNIFORM: U N I F O R M;
 SAMPLES: S A M P L E S;
 GET: G E T;
+
+
+DOUBLE_QUOTE_STRING: '"' (~'"' | '\\"')* '"';
 
 // VERDICT
 

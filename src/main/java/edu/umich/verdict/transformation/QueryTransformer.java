@@ -49,10 +49,10 @@ public abstract class QueryTransformer {
         this.q = q;
         this.metaDataManager = metaDataManager;
         rewriter = q.getRewriter();
-        confidence = conf.getPercent("bootstrap.confidence");
+        confidence = conf.getPercent("confidence");
         bootstrapTrials = conf.getInt("bootstrap.trials");
-        preferredSample = conf.getPercent("bootstrap.sample_size");
-        sampleType = conf.get("bootstrap.sample_type").toLowerCase();
+        preferredSample = conf.getPercent("sample_size");
+        sampleType = conf.get("sample_type").toLowerCase();
         transformed = new TransformedQuery(q, bootstrapTrials, confidence, conf.get("bootstrap.method").toLowerCase());
     }
 
