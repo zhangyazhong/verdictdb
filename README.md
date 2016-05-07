@@ -131,14 +131,14 @@ DROP SAMPLE <sample_name>;
 
 ### 4.2. Approximation Options
 
-The following options tells Verdict how to process approximate queries and you may need to customized them regardless of what DBMS you use.
-The default values of this options can be specified in the config file. You can also re-set the values before each query while Verdict is running using the [`SET`](#45-set-and-get-commands) command.
+The following options tells Verdict how to process approximate queries. You can customize these approximation options based on your needs, but for the most part, the default values are a reasonable choice for most users.
+The default values of these options can be specified in the config file. You can also re-set these values before each query while Verdict is running using the [`SET`](#45-set-and-get-commands) command.
  
 |Config         |Default Value  |Description                                        |
 |------         |-------------  |-----------                                        |
 |`approximation`    |`on`           |A boolean value `on/off` that switches approximate query processing on and off. Verdict doesn't do anything and just submits the original queries to the DBMS if this option is set to `off`.|
 |`bootstrap.method`    |`uda`   |This option can have one of the values `uda`,`udf` or `stored`. It determines the method Verdict uses to perform bootstrap trials for calculating estimated error. Usually the `uda` method is the fastest, but other two options are useful for the DBMSs that don't support UDA (user defined aggregate function).|
-|`bootstrap.trials`    |`100`   |An integer specifying the number of bootstrap trials being run for calculating error estimation. Usually `100` or smaller number works well. Choosing a very small number reduces the accuracy of error estimations, while a very large number of bootstrap trials makes the query slow.|
+|`bootstrap.trials`    |`100`   |An integer specifying the number of bootstrap trials being run for calculating error estimation. Usually `100` or smaller number works well. Choosing a very small number reduces the accuracy of error estimations, while a very large number of bootstrap trials makes thee query slow.|
 |`bootstrap.confidence`|`95%`   |A percentage that determines the confidence level for reporting the confidence interval (error estimation). For example when it is set to 95%, it means that Verdict is 95% confident that the true answer for the query is in the provided bound.|
 |`bootstrap.sample_size`|`1%`   |A percentage that determines the preferred size for the sample (relative to the actual table) used for running approximate query. Choosing a small sample makes your queries faster but with higher error. When multiple samples are present for a table, Verdict tries to use the sample which size is closest to this value.|
 |`bootstrap.sample_type`|`uniform`   |This option tells Verdict what kind of sample (`uniform` or `stratified`) do you prefer to run your query on. If both kind of samples are present for a table, Verdict tries to chose the one that is the kind specified in this option.|
@@ -155,7 +155,7 @@ For example, one query can be the following, where the `sales` is the name of th
 SELECT department, SUM(price) as revenue from sales GROUP BY department;
 ```
 
-On a exact DBMS you'll get a result like below:
+On an exact DBMS you'll get a result like below:
 
 ```
 department  |revenue 
