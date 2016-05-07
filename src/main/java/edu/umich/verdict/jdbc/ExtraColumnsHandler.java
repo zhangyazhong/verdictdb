@@ -5,12 +5,14 @@ import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.transformation.TransformedQuery;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.*;
 
 class ExtraColumnsHandler {
     private final ResultSet originalResultSet;
+    private final ResultSetMetaData originalMetaData;
     private final TransformedQuery q;
     private final int originalCount;
     private final int aggregatesCount;
@@ -23,17 +25,18 @@ class ExtraColumnsHandler {
     private final ExtraColumnType[] extraColumnsTypes;
     private HashMap<String, Integer> columnLabels = new HashMap<>();
 
-    public ExtraColumnsHandler(ResultSet rs, TransformedQuery q, Configuration conf) throws InvalidConfigurationException {
+    public ExtraColumnsHandler(ResultSet rs, TransformedQuery q, Configuration conf) throws InvalidConfigurationException, SQLException {
         this.originalResultSet = rs;
         this.q = q;
         this.originalCount = q.getOriginalColumnsCount();
+        this.originalMetaData = rs.getMetaData();
 
         extraColumnsPerAggregate = 0;
 
         String[] extraColumns = conf.get("error_columns").split(",");
         ArrayList<ExtraColumnType> extraColumnsTypesList = new ArrayList<>();
         for (String extraColumn : extraColumns) {
-            if(extraColumn.trim().isEmpty())
+            if (extraColumn.trim().isEmpty())
                 continue;
             extraColumnsPerAggregate++;
             switch (extraColumn.trim()) {
@@ -51,7 +54,7 @@ class ExtraColumnsHandler {
                     extraColumnsTypesList.add(ExtraColumnType.ErrorPercentage);
                     showErrorPercentages = true;
                     break;
-                case "var":
+                case "variance":
                     extraColumnsTypesList.add(ExtraColumnType.Variance);
                     showVariances = true;
                     break;
@@ -96,7 +99,7 @@ class ExtraColumnsHandler {
                     if (showErrors)
                         errors[j] = Math.abs(bound - estimatedAnswer);
                     if (showErrorPercentages)
-                        errorPercentages[j] = Math.round(10000 * Math.abs(bound - estimatedAnswer) / estimatedAnswer)/100;
+                        errorPercentages[j] = Math.round(10000 * Math.abs(bound - estimatedAnswer) / estimatedAnswer) / 100;
                 }
                 if (showVariances) {
                     variances[j] = getVariance(bootstrapResults);
@@ -156,21 +159,21 @@ class ExtraColumnsHandler {
         return 22;
     }
 
-    public String getLabel(int column) {
+    public String getLabel(int column) throws SQLException {
         column = column - originalCount - 1;
         int i = column / extraColumnsPerAggregate;
-        int aggregateColumn = q.getAggregates().get(i).getColumn();
+        String aggregateLabel = originalMetaData.getColumnLabel(q.getAggregates().get(i).getColumn());
         switch (extraColumnsTypes[column % extraColumnsPerAggregate]) {
             case ConfidenceIntervalLower:
-                return "ci_lower_" + aggregateColumn;
+                return "conf_inv_lower__" + aggregateLabel;
             case ConfidenceIntervalUpper:
-                return "ci_upper_" + aggregateColumn;
+                return "conf_inv_upper__" + aggregateLabel;
             case Error:
-                return "error_" + aggregateColumn;
+                return "err__" + aggregateLabel;
             case ErrorPercentage:
-                return "e_percent_" + aggregateColumn;
+                return "err_percent__" + aggregateLabel;
             case Variance:
-                return "var_" + aggregateColumn;
+                return "variance__" + aggregateLabel;
             default:
                 return null;
         }

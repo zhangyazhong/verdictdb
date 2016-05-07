@@ -20,7 +20,7 @@ public class VResultSet implements ResultSet {
     private final int originalColumnCount;
     private TransformedQuery transformedQuery;
 
-    public VResultSet(ResultSet resultSet, TransformedQuery q, Configuration conf) throws InvalidConfigurationException {
+    public VResultSet(ResultSet resultSet, TransformedQuery q, Configuration conf) throws InvalidConfigurationException, SQLException {
         this.originalResultSet = resultSet;
         extraColumns = new ExtraColumnsHandler(resultSet, q, conf);
         originalColumnCount = q.getOriginalColumnsCount();
