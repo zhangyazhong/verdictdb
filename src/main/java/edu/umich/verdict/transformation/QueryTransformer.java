@@ -24,6 +24,7 @@ public abstract class QueryTransformer {
     protected final double confidence;
     protected final String sampleType;
     protected final double preferredSample;
+    protected final boolean showErrors;
 
     protected TsqlParser.Select_listContext selectList = null;
     ArrayList<SelectListItem> selectItems = new ArrayList<>();
@@ -52,6 +53,7 @@ public abstract class QueryTransformer {
         confidence = conf.getPercent("confidence");
         bootstrapTrials = conf.getInt("bootstrap.trials");
         preferredSample = conf.getPercent("sample_size");
+        showErrors = !conf.get("error_columns").isEmpty();
         sampleType = conf.get("sample_type").toLowerCase();
         transformed = new TransformedQuery(q, bootstrapTrials, confidence, conf.get("bootstrap.method").toLowerCase());
     }
@@ -67,7 +69,8 @@ public abstract class QueryTransformer {
         }
 
         replaceAggregates();
-        addBootstrapTrials();
+        if (showErrors)
+            addBootstrapTrials();
 
         return transformed;
     }
