@@ -32,7 +32,7 @@ public class HiveMetaDataManager extends MetaDataManager {
                     "drop function if exists " + METADATA_DATABASE + ".poisson; create function " + METADATA_DATABASE + ".poisson as 'edu.umich.tajik.verdict.hive.udf.Poisson';\n" +
                     "drop function if exists " + METADATA_DATABASE + ".poisson_sum; create function " + METADATA_DATABASE + ".poisson_sum as 'edu.umich.tajik.verdict.hive.uda.Sum';\n" +
                     "drop function if exists " + METADATA_DATABASE + ".poisson_count; create function " + METADATA_DATABASE + ".poisson_count as 'edu.umich.tajik.verdict.hive.uda.Count';\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson_avg; create function " + METADATA_DATABASE + ".poisson_avg as 'edu.umich.tajik.verdict.hive.uda.Avg'" +
+                    "drop function if exists " + METADATA_DATABASE + ".poisson_avg; create function " + METADATA_DATABASE + ".poisson_avg as 'edu.umich.tajik.verdict.hive.uda.Avg'\n" +
                     "drop function if exists " + METADATA_DATABASE + ".poisson_wcount; create function " + METADATA_DATABASE + ".poisson_count as 'edu.umich.tajik.verdict.hive.uda.WeightedCount';\n" +
                     "drop function if exists " + METADATA_DATABASE + ".poisson_wavg; create function " + METADATA_DATABASE + ".poisson_avg as 'edu.umich.tajik.verdict.hive.uda.WeightedAvg'";
             for (String q : initStatements.split(";"))
