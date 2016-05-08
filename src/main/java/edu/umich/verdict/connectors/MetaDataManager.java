@@ -22,6 +22,7 @@ public abstract class MetaDataManager {
     protected ArrayList<Sample> samples = new ArrayList<>();
     protected DbConnector connector;
     protected DatabaseMetaData dbmsMetaData;
+    private String currentSchema = "default";
 
     public MetaDataManager(DbConnector connector) throws SQLException {
         this.connector = connector;
@@ -49,6 +50,7 @@ public abstract class MetaDataManager {
     //TODO: General implementation
     //TODO: cleanup if failed
     public void createSample(Sample sample) throws SQLException {
+        sample.setTableName(getTableNameWithSchema(sample.getTableName()));
         loadSamples();
         for (Sample s : samples)
             if (s.getName().equals(sample.getName()))
@@ -97,7 +99,12 @@ public abstract class MetaDataManager {
     }
 
     public List<Sample> getTableSamples(String tableName) {
-        return samples.stream().filter(s -> s.getTableName().equals(tableName)).collect(Collectors.toList());
+        tableName = getTableNameWithSchema(tableName);
+        ArrayList<Sample> results = new ArrayList<>();
+        for (Sample s : samples)
+            if (s.getTableName().equals(tableName))
+                results.add(s);
+        return results;
     }
 
     public void loadSamples() throws SQLException {
@@ -120,6 +127,12 @@ public abstract class MetaDataManager {
                 + " order by table_name, name";
     }
 
+    public String getTableNameWithSchema(String name) {
+        if (!name.contains("."))
+            return getCurrentSchema() + "." + name;
+        return name;
+    }
+
     public String getSamplesInfoQuery(String type, String table) {
         StringBuilder buf = new StringBuilder(" true");
         if (type.equals("uniform"))
@@ -127,7 +140,7 @@ public abstract class MetaDataManager {
         if (type.equals("stratified"))
             buf.append(" and stratified=true");
         if (table != null)
-            buf.append(" and table_name='").append(table).append("' ");
+            buf.append(" and table_name='").append(getTableNameWithSchema(table)).append("' ");
         return getSamplesInfoQuery(buf.toString());
     }
 
@@ -184,5 +197,13 @@ public abstract class MetaDataManager {
 
     public boolean supportsUdfOverloading() {
         return true;
+    }
+
+    public String getCurrentSchema() {
+        return currentSchema;
+    }
+
+    public void setCurrentSchema(String currentSchema) {
+        this.currentSchema = currentSchema;
     }
 }

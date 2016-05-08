@@ -24,7 +24,11 @@ public class ParsedStatement {
     public ResultSet run(Configuration conf, DbConnector connector) throws SQLException, VerdictException {
         ResultSet rs;
         try {
-            rs = connector.executeQuery(this.toString());
+            String sql = this.toString().trim();
+            rs = connector.executeQuery(sql);
+            //TODO: make a separate statement for "USE schema"
+            if(sql.toLowerCase().startsWith("use "))
+                connector.getMetaDataManager().setCurrentSchema(sql.split(" ")[1]);
         } catch (SQLException e) {
             System.err.println("Error in executing query:");
             throw e;
