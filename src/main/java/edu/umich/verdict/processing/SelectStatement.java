@@ -34,8 +34,8 @@ public class SelectStatement extends ParsedStatement {
 //            info("\n");
             info("Using Sample: " + transformed.getSample().getName() + " Size: " + (transformed.getSample().getCompRatio() *
                     100) + "%" + " Type: " + (transformed.getSample() instanceof StratifiedSample ? "Stratified" : "Uniform"));
-            info("Bootstrap Trials: " + transformed.getBootstrapTrials());
-            info("Method: " + transformed.getMethod());
+//            info("Bootstrap Trials: " + transformed.getBootstrapTrials());
+//            info("Method: " + transformed.getMethod());
             rs = connector.executeQuery(q);
             rs = new VResultSet(rs, transformed, conf);
         } else {
