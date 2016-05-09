@@ -99,7 +99,7 @@ class ExtraColumnsHandler {
                     if (showErrors)
                         errors[j] = Math.abs(bound - estimatedAnswer);
                     if (showErrorPercentages)
-                        errorPercentages[j] = Math.round(10000 * Math.abs(bound - estimatedAnswer) / estimatedAnswer) / 100;
+                        errorPercentages[j] = (double) Math.round(10000 * Math.abs(bound - estimatedAnswer) / estimatedAnswer) / 100;
                 }
                 if (showVariances) {
                     variances[j] = getVariance(bootstrapResults);
