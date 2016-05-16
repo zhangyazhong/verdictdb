@@ -91,8 +91,8 @@ Once you run Thrift JDBC server (and it is working with Beeline), please replace
 |`sparksql.port`  |`10001`        |Thrift's port address|
 |`sparksql.user`  |`""`           |Username to login with|
 |`sparksql.password`  |`""`       |Password to login with|
-|`sparksql.connection_string_params`  |`;transportMode=http;httpPath=cliservice`       |This is the parameters Verdict will add to the connection string for connecting to Thrift JDBC server. If you are using HTTP transport mode in Thrift JDBC server, keep it as is. Otherwise, replace the value with `""`.|
-|`udf_bin` |None           |Verdict needs to deploy some UDF and UDAs into Hive. You need to copy the `udf_bin` folder to a place accessible by Spark master (If Spark master is running in another server you may need to copy `udf_bin` folder to that server).|
+|`sparksql.connection_string_params`  |`;transportMode=http;httpPath=cliservice`       |These are the parameters Verdict will add to the connection string to connect to Thrift JDBC server. If you are using HTTP transport mode in Thrift JDBC server, keep it as is. Otherwise, replace the value with `""`.|
+|`udf_bin` |None           |Verdict needs to deploy some UDF and UDAs into Spark SQL. You need to copy the `udf_bin` folder to a place accessible by Spark master (If Spark master is running in another server you may need to copy `udf_bin` folder to that server).|
 
 
 ### 3.4. Running Verdict
