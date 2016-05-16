@@ -53,7 +53,6 @@ public abstract class DbConnector {
     }
 
     protected void connect(String connectionString, String user, String password) throws SQLException, ClassNotFoundException {
-
         if (connection != null && !connection.isClosed())
             return;
         Class.forName(getDriverClassPath());

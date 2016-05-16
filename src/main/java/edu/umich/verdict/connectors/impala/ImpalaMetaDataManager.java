@@ -27,19 +27,23 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         try {
             executeQuery("select " + getUdfFullName("poisson") + "(1)");
         } catch (SQLException e) {
-            System.out.println("Installing UDFs...");
-            String lib = udfBinHdfs + "/verdict-impala-udf.so";
-            String initStatements = "drop function if exists " + getUdfFullName("poisson") + "(int); create function " + getUdfFullName("poisson") + " (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
-                    "drop aggregate function if exists " + getUdfFullName("poisson_count") + "(int, double); create aggregate function " + getUdfFullName("poisson_count") + "(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
-                    "drop aggregate function if exists " + getUdfFullName("poisson_count") + "(int, double, double); create aggregate function " + getUdfFullName("poisson_count") + "(int, double, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
-                    "drop aggregate function if exists " + getUdfFullName("poisson_sum") + "(int, int); create aggregate function " + getUdfFullName("poisson_sum") + "(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
-                    "drop aggregate function if exists " + getUdfFullName("poisson_sum") + "(int, double); create aggregate function " + getUdfFullName("poisson_sum") + "(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
-                    "drop aggregate function if exists " + getUdfFullName("poisson_avg") + "(int, double); create aggregate function " + getUdfFullName("poisson_avg") + "(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";" +
-                    "drop aggregate function if exists " + getUdfFullName("poisson_avg") + "(int, double, double); create aggregate function " + getUdfFullName("poisson_avg") + "(int, double, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
-            for (String q : initStatements.split(";"))
-                if (!q.trim().isEmpty())
-                    executeStatement(q);
+            installUdfs();
         }
+    }
+
+    protected void installUdfs() throws SQLException {
+        System.out.println("Installing UDFs...");
+        String lib = udfBinHdfs + "/verdict-impala-udf.so";
+        String initStatements = "drop function if exists " + getUdfFullName("poisson") + "(int); create function " + getUdfFullName("poisson") + " (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
+                "drop aggregate function if exists " + getUdfFullName("poisson_count") + "(int, double); create aggregate function " + getUdfFullName("poisson_count") + "(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                "drop aggregate function if exists " + getUdfFullName("poisson_count") + "(int, double, double); create aggregate function " + getUdfFullName("poisson_count") + "(int, double, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                "drop aggregate function if exists " + getUdfFullName("poisson_sum") + "(int, int); create aggregate function " + getUdfFullName("poisson_sum") + "(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
+                "drop aggregate function if exists " + getUdfFullName("poisson_sum") + "(int, double); create aggregate function " + getUdfFullName("poisson_sum") + "(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
+                "drop aggregate function if exists " + getUdfFullName("poisson_avg") + "(int, double); create aggregate function " + getUdfFullName("poisson_avg") + "(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";" +
+                "drop aggregate function if exists " + getUdfFullName("poisson_avg") + "(int, double, double); create aggregate function " + getUdfFullName("poisson_avg") + "(int, double, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
+        for (String q : initStatements.split(";"))
+            if (!q.trim().isEmpty())
+                executeStatement(q);
     }
 
     protected void createStratifiedSample(StratifiedSample sample) throws SQLException {

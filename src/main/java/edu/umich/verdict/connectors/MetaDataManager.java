@@ -37,7 +37,15 @@ public abstract class MetaDataManager {
     protected void setupMetaDataDatabase() throws SQLException {
         executeStatement("create database if not exists " + METADATA_DATABASE);
         executeStatement("create table if not exists " + METADATA_DATABASE + ".sample  (name string, table_name string, last_update timestamp, comp_ratio double, row_count bigint, poisson_cols int, stratified boolean, strata_cols string)");
+
+        try {
+            executeQuery("select " + getUdfFullName("poisson") + "(1)");
+        } catch (SQLException e) {
+            installUdfs();
+        }
     }
+
+    protected abstract void installUdfs() throws SQLException;
 
     protected boolean executeStatement(String q) throws SQLException {
         return connector.executeStatement(q);
@@ -112,9 +120,9 @@ public abstract class MetaDataManager {
         ArrayList<Sample> res = new ArrayList<>();
         while (rs.next()) {
             if (rs.getBoolean("stratified"))
-                res.add(new StratifiedSample(rs.getString("name"), rs.getString("table_name"), rs.getDate("last_update"), rs.getDouble("comp_ratio"), rs.getLong("row_count"), rs.getInt("poisson_cols"), rs.getString("strata_cols")));
+                res.add(new StratifiedSample(rs.getString("name"), rs.getString("table_name"), rs.getTimestamp("last_update"), rs.getDouble("comp_ratio"), rs.getLong("row_count"), rs.getInt("poisson_cols"), rs.getString("strata_cols")));
             else
-                res.add(new Sample(rs.getString("name"), rs.getString("table_name"), rs.getDate("last_update"), rs.getDouble("comp_ratio"), rs.getLong("row_count"), rs.getInt("poisson_cols")));
+                res.add(new Sample(rs.getString("name"), rs.getString("table_name"), rs.getTimestamp("last_update"), rs.getDouble("comp_ratio"), rs.getLong("row_count"), rs.getInt("poisson_cols")));
         }
         samples = res;
     }
@@ -207,13 +215,13 @@ public abstract class MetaDataManager {
         this.currentSchema = currentSchema;
     }
 
-    public String getUdfFullName(String udf){
-        if(this.supportsSchemaUdf())
-            return METADATA_DATABASE+"."+udf;
-        return METADATA_DATABASE+"_"+udf;
+    public String getUdfFullName(String udf) {
+        if (this.supportsSchemaUdf())
+            return METADATA_DATABASE + "." + udf;
+        return METADATA_DATABASE + "_" + udf;
     }
 
-    protected boolean supportsSchemaUdf(){
+    protected boolean supportsSchemaUdf() {
         return true;
     }
 }

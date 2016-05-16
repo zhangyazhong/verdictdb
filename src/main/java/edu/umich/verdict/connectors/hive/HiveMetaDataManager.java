@@ -25,19 +25,7 @@ public class HiveMetaDataManager extends MetaDataManager {
         try {
             executeQuery("select " + getUdfFullName("poisson") + "(1)");
         } catch (SQLException e) {
-            System.out.println("Installing UDFs...");
-            String jar = udfBin + "/verdict-hive-udf.jar";
-            String initStatements = "delete jar if exists " + jar + ";" +
-                    "add jar " + jar + ";\n" +
-                    "drop function if exists " + getUdfFullName("poisson") + "; create function " + getUdfFullName("poisson") + " as 'edu.umich.tajik.verdict.hive.udf.Poisson';\n" +
-                    "drop function if exists " + getUdfFullName("poisson_sum") + "; create function " + getUdfFullName("poisson_sum") + " as 'edu.umich.tajik.verdict.hive.uda.Sum';\n" +
-                    "drop function if exists " + getUdfFullName("poisson_count") + "; create function " + getUdfFullName("poisson_count") + " as 'edu.umich.tajik.verdict.hive.uda.Count';\n" +
-                    "drop function if exists " + getUdfFullName("poisson_avg") + "; create function " + getUdfFullName("poisson_avg") + " as 'edu.umich.tajik.verdict.hive.uda.Avg';\n" +
-                    "drop function if exists " + getUdfFullName("poisson_wcount") + "; create function " + getUdfFullName("poisson_wcount") + " as 'edu.umich.tajik.verdict.hive.uda.WeightedCount';\n" +
-                    "drop function if exists " + getUdfFullName("poisson_wavg") + "; create function " + getUdfFullName("poisson_wavg") + " as 'edu.umich.tajik.verdict.hive.uda.WeightedAvg'";
-            for (String q : initStatements.split(";"))
-                if (!q.trim().isEmpty())
-                    executeStatement(q);
+            installUdfs();
 
             // dummy table is used for inserting values into sample table!
             if (!executeQuery("show tables in " + METADATA_DATABASE + " like 'dummy'").next()) {
@@ -45,6 +33,22 @@ public class HiveMetaDataManager extends MetaDataManager {
                 executeQuery("insert into " + METADATA_DATABASE + ".dummy values (0)");
             }
         }
+    }
+
+    protected void installUdfs() throws SQLException {
+        System.out.println("Installing UDFs...");
+        String jar = udfBin + "/verdict-hive-udf.jar";
+        String initStatements = "delete jar if exists " + jar + ";" +
+                "add jar " + jar + ";\n" +
+                "drop function if exists " + getUdfFullName("poisson") + "; create function " + getUdfFullName("poisson") + " as 'edu.umich.tajik.verdict.hive.udf.Poisson';\n" +
+                "drop function if exists " + getUdfFullName("poisson_sum") + "; create function " + getUdfFullName("poisson_sum") + " as 'edu.umich.tajik.verdict.hive.uda.Sum';\n" +
+                "drop function if exists " + getUdfFullName("poisson_count") + "; create function " + getUdfFullName("poisson_count") + " as 'edu.umich.tajik.verdict.hive.uda.Count';\n" +
+                "drop function if exists " + getUdfFullName("poisson_avg") + "; create function " + getUdfFullName("poisson_avg") + " as 'edu.umich.tajik.verdict.hive.uda.Avg';\n" +
+                "drop function if exists " + getUdfFullName("poisson_wcount") + "; create function " + getUdfFullName("poisson_wcount") + " as 'edu.umich.tajik.verdict.hive.uda.WeightedCount';\n" +
+                "drop function if exists " + getUdfFullName("poisson_wavg") + "; create function " + getUdfFullName("poisson_wavg") + " as 'edu.umich.tajik.verdict.hive.uda.WeightedAvg'";
+        for (String q : initStatements.split(";"))
+            if (!q.trim().isEmpty())
+                executeStatement(q);
     }
 
     protected void createStratifiedSample(StratifiedSample sample) throws SQLException {

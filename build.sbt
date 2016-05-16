@@ -8,6 +8,9 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 libraryDependencies += "jline" % "jline" % "2.12.1"
 libraryDependencies += "commons-cli" % "commons-cli" % "1.3.1"
 
+// HiveDriver for SparkSQL http://mvnrepository.com/artifact/org.apache.hive/hive-jdbc
+libraryDependencies += "org.apache.hive" % "hive-jdbc" % "1.0.0"
+
 lazy val buildSettings = Seq(
   organization := "edu.umich",
   name := "verdict",

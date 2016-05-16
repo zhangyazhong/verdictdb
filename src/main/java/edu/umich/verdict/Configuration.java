@@ -72,9 +72,11 @@ public class Configuration {
     }
 
     private Configuration set(String keyVal) {
-        String[] parts = keyVal.split("=");
-        String key = parts[0].trim();
-        String val = parts[1].trim();
+        int equalIndex = keyVal.indexOf('=');
+        if (equalIndex == -1)
+            return this;
+        String key = keyVal.substring(0, equalIndex).trim();
+        String val = keyVal.substring(equalIndex + 1).trim();
         if (val.startsWith("\"") && val.endsWith("\""))
             val = val.substring(1, val.length() - 1);
         return set(key, val);
