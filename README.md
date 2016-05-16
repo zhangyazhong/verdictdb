@@ -80,7 +80,7 @@ Please replace the values of the following configs in the `configs/hive.conf` fi
 
 #### Configurations for Spark SQL
 
-Verdict connects to Spark SQL using Thrift JDBC server. You can find the instructions to run Thrift JDBC/ODBC server [here](https://spark.apache.org/docs/latest/sql-programming-guide.html#distributed-sql-engine)
+Verdict connects to Spark SQL using Thrift JDBC server. You can find the instructions to run Thrift JDBC/ODBC server [here](https://spark.apache.org/docs/latest/sql-programming-guide.html#distributed-sql-engine).
 
 Once you run Thrift JDBC server (and it is working with Beeline), please replace the values of the following configs in the `configs/sparksql.conf` file, if needed:
 
