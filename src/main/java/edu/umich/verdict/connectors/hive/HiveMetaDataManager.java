@@ -62,7 +62,7 @@ public class HiveMetaDataManager extends MetaDataManager {
             long strata = getTableSize(originalStrataCounts);
             long rowPerStratum = (long) ((tableSize * sample.getCompRatio()) / strata);
             if (rowPerStratum < MIN_ROW_FOR_STRATA)
-                System.err.println("WARNING: With this sample size, each stratum will have at most " + rowPerStratum + " rows which is small low for accurate estimations in the future.");
+                System.err.println("WARNING: With this sample size, each stratum will have at most " + rowPerStratum + " rows which is too small for accurate estimations in the future.");
             StringBuilder buf = new StringBuilder();
             for (String s : getTableCols(sample.getTableName()))
                 buf.append(",").append(getIdentifierWrappingChar()).append(s).append(getIdentifierWrappingChar());
@@ -153,7 +153,7 @@ public class HiveMetaDataManager extends MetaDataManager {
 
         while (columns.next()) {
             String columnName = columns.getString(1);
-            if (columnName.isEmpty())
+            if (columnName.isEmpty() || columnName.startsWith("#"))
                 break;
             res.add(columnName);
         }

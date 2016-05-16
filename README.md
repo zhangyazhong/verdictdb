@@ -19,8 +19,9 @@ Verdict is designed in a way that be as decoupled as possible from the underlyin
 
 Currently we have developed drivers for: 
 
+- **Spark SQL 1.1+**
 - **Impala 2.3+**
-- **Hive 1.2+** 
+- **Hive 1.2+**
 
 We plan to add drivers for some other popular DBMS's very soon.
 
@@ -75,6 +76,23 @@ Please replace the values of the following configs in the `configs/hive.conf` fi
 |`hive.user`  |`hive`           |Username to login with|
 |`hive.password`  |`""`       |Password to login with|
 |`udf_bin` |None           |Verdict needs to deploy some UDF and UDAs into Hive. You need to copy the `udf_bin` folder to a place accessible by Hive (If Hive is running in another server you may need to copy `udf_bin` folder to that server).|
+
+
+#### Configurations for Spark SQL
+
+Verdict connects to Spark SQL using Thrift JDBC server. You can find the instructions to run Thrift JDBC/ODBC server [here](https://spark.apache.org/docs/latest/sql-programming-guide.html#distributed-sql-engine)
+
+Once you run Thrift JDBC server (and it is working with Beeline), please replace the values of the following configs in the `configs/sparksql.conf` file, if needed:
+
+|Config         |Default Value  |Description                                        |
+|------         |-------------  |-----------                                        |
+|`dbms`         |None           |Tells Verdict what DBMS it should connect to. Use value `sparksql` if you want use Verdict on Spark SQL.|
+|`sparksql.host`  |`127.0.0.1`    |Thrift's host address|
+|`sparksql.port`  |`10001`        |Thrift's port address|
+|`sparksql.user`  |`""`           |Username to login with|
+|`sparksql.password`  |`""`       |Password to login with|
+|`sparksql.connection_string_params`  |`;transportMode=http;httpPath=cliservice`       |This is the parameters Verdict will add to the connection string for connecting to Thrift JDBC server. If you are using HTTP transport mode in Thrift JDBC server, keep it as is. Otherwise, replace the value with `""`.|
+|`udf_bin` |None           |Verdict needs to deploy some UDF and UDAs into Hive. You need to copy the `udf_bin` folder to a place accessible by Spark master (If Spark master is running in another server you may need to copy `udf_bin` folder to that server).|
 
 
 ### 3.4. Running Verdict

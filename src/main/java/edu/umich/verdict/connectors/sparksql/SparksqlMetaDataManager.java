@@ -3,6 +3,7 @@ package edu.umich.verdict.connectors.sparksql;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.connectors.hive.HiveMetaDataManager;
+import edu.umich.verdict.models.Sample;
 
 import java.sql.SQLException;
 
@@ -28,5 +29,17 @@ public class SparksqlMetaDataManager extends HiveMetaDataManager {
 
     protected boolean supportsSchemaUdf(){
         return false;
+    }
+
+    @Override
+    protected void createUniformSample(Sample sample) throws SQLException {
+        StringBuilder buf = new StringBuilder();
+        buf.append("create table ")
+                .append(getSampleFullName(sample))
+                .append(" as select *");
+        for (int i = 1; i <= sample.getPoissonColumns(); i++)
+            buf.append(",").append(getUdfFullName("poisson")).append("(cast(rand() * ").append(i).append(" as int)) as v__p").append(i);
+        buf.append(" from ").append(sample.getTableName()).append(" where rand() <= ").append(sample.getCompRatio());
+        executeStatement(buf.toString());
     }
 }

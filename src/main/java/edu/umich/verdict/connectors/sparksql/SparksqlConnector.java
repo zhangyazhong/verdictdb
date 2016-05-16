@@ -5,6 +5,7 @@ import edu.umich.verdict.InvalidConfigurationException;
 import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.connectors.hive.HiveConnector;
 import edu.umich.verdict.connectors.hive.HiveMetaDataManager;
+import edu.umich.verdict.models.Sample;
 
 import java.sql.SQLException;
 
