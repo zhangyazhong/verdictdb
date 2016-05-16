@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 
 public class HiveMetaDataManager extends MetaDataManager {
 
-    private final String udfBin;
+    protected final String udfBin;
 
     public HiveMetaDataManager(DbConnector connector, String udfBin) throws SQLException {
         super(connector);
