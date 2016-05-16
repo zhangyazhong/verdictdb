@@ -25,17 +25,17 @@ public class ImpalaMetaDataManager extends MetaDataManager {
         executeStatement("invalidate metadata");
 
         try {
-            executeQuery("select " + METADATA_DATABASE + ".poisson(1)");
+            executeQuery("select " + getUdfFullName("poisson") + "(1)");
         } catch (SQLException e) {
             System.out.println("Installing UDFs...");
             String lib = udfBinHdfs + "/verdict-impala-udf.so";
-            String initStatements = "drop function if exists " + METADATA_DATABASE + ".poisson(int); create function " + METADATA_DATABASE + ".poisson (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
-                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_count(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_count(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
-                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_count(int, double, double); create aggregate function " + METADATA_DATABASE + ".poisson_count(int, double, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
-                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_sum(int, int); create aggregate function " + METADATA_DATABASE + ".poisson_sum(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
-                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_sum(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_sum(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
-                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_avg(int, double); create aggregate function " + METADATA_DATABASE + ".poisson_avg(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";" +
-                    "drop aggregate function if exists " + METADATA_DATABASE + ".poisson_avg(int, double, double); create aggregate function " + METADATA_DATABASE + ".poisson_avg(int, double, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
+            String initStatements = "drop function if exists " + getUdfFullName("poisson") + "(int); create function " + getUdfFullName("poisson") + " (int) returns tinyint location '" + lib + "' symbol='Poisson';" +
+                    "drop aggregate function if exists " + getUdfFullName("poisson_count") + "(int, double); create aggregate function " + getUdfFullName("poisson_count") + "(int, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                    "drop aggregate function if exists " + getUdfFullName("poisson_count") + "(int, double, double); create aggregate function " + getUdfFullName("poisson_count") + "(int, double, double) returns bigint location '" + lib + "' update_fn='CountUpdate';" +
+                    "drop aggregate function if exists " + getUdfFullName("poisson_sum") + "(int, int); create aggregate function " + getUdfFullName("poisson_sum") + "(int, int) returns bigint location '" + lib + "' update_fn='SumUpdate';" +
+                    "drop aggregate function if exists " + getUdfFullName("poisson_sum") + "(int, double); create aggregate function " + getUdfFullName("poisson_sum") + "(int, double) returns double location '" + lib + "' update_fn='SumUpdate';" +
+                    "drop aggregate function if exists " + getUdfFullName("poisson_avg") + "(int, double); create aggregate function " + getUdfFullName("poisson_avg") + "(int, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";" +
+                    "drop aggregate function if exists " + getUdfFullName("poisson_avg") + "(int, double, double); create aggregate function " + getUdfFullName("poisson_avg") + "(int, double, double) returns double intermediate string location '" + lib + "' init_fn=\"AvgInit\" merge_fn=\"AvgMerge\" update_fn='AvgUpdate' finalize_fn=\"AvgFinalize\";";
             for (String q : initStatements.split(";"))
                 if (!q.trim().isEmpty())
                     executeStatement(q);
@@ -72,7 +72,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
                     .append(", r.")
                     .append(getWeightColumn());
             for (int i = 1; i <= sample.getPoissonColumns(); i++)
-                buf.append("," + METADATA_DATABASE + ".poisson(").append(i).append(") as v__p").append(i);
+                buf.append(",").append(getUdfFullName("poisson")).append("").append(i).append(") as v__p").append(i);
             buf.append(" from ")
                     .append(strataWeights)
                     .append(" as r join ")
@@ -124,7 +124,7 @@ public class ImpalaMetaDataManager extends MetaDataManager {
                         .append(getSampleFullName(sample))
                         .append(" stored as parquet as (select *");
                 for (int i = 1; i <= sample.getPoissonColumns(); i++)
-                    buf.append("," + METADATA_DATABASE + ".poisson(").append(i).append(") as v__p").append(i);
+                    buf.append(",").append(getUdfFullName("poisson")).append("(").append(i).append(") as v__p").append(i);
                 buf.append(" from ")
                         .append(sampleWithoutPoissonCols)
                         .append(")");

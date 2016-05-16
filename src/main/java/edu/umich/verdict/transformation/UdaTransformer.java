@@ -32,7 +32,7 @@ public class UdaTransformer extends QueryTransformer {
     private String getUda(SelectListItem item) {
         if (stratifiedSample() && item.getAggregateType() != TransformedQuery.AggregateType.SUM && !metaDataManager.supportsUdfOverloading())
             // here the name of the UDA that supports weights differs
-            return MetaDataManager.METADATA_DATABASE + ".poisson_w" + item.getAggregateType().toString().toLowerCase();
-        return MetaDataManager.METADATA_DATABASE + ".poisson_" + item.getAggregateType().toString().toLowerCase();
+            return metaDataManager.getUdfFullName("poisson_w" + item.getAggregateType().toString().toLowerCase());
+        return metaDataManager.getUdfFullName("poisson_" + item.getAggregateType().toString().toLowerCase());
     }
 }

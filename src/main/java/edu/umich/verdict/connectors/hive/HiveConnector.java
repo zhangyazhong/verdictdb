@@ -31,8 +31,8 @@ public class HiveConnector extends DbConnector {
     }
 
     @Override
-    protected String getConnectionString(String host, String port, String schema) {
-        return super.getConnectionString(host, port, schema == null ? "default" : schema);
+    protected String getConnectionString(String host, String port, String schema, String params) {
+        return super.getConnectionString(host, port, schema == null ? "default" : schema, params);
     }
 
     @Override

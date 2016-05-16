@@ -23,18 +23,18 @@ public class HiveMetaDataManager extends MetaDataManager {
     protected void setupMetaDataDatabase() throws SQLException {
         super.setupMetaDataDatabase();
         try {
-            executeQuery("select " + METADATA_DATABASE + ".poisson(1)");
+            executeQuery("select " + getUdfFullName("poisson") + "(1)");
         } catch (SQLException e) {
             System.out.println("Installing UDFs...");
             String jar = udfBin + "/verdict-hive-udf.jar";
             String initStatements = "delete jar if exists " + jar + ";" +
                     "add jar " + jar + ";\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson; create function " + METADATA_DATABASE + ".poisson as 'edu.umich.tajik.verdict.hive.udf.Poisson';\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson_sum; create function " + METADATA_DATABASE + ".poisson_sum as 'edu.umich.tajik.verdict.hive.uda.Sum';\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson_count; create function " + METADATA_DATABASE + ".poisson_count as 'edu.umich.tajik.verdict.hive.uda.Count';\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson_avg; create function " + METADATA_DATABASE + ".poisson_avg as 'edu.umich.tajik.verdict.hive.uda.Avg';\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson_wcount; create function " + METADATA_DATABASE + ".poisson_wcount as 'edu.umich.tajik.verdict.hive.uda.WeightedCount';\n" +
-                    "drop function if exists " + METADATA_DATABASE + ".poisson_wavg; create function " + METADATA_DATABASE + ".poisson_wavg as 'edu.umich.tajik.verdict.hive.uda.WeightedAvg'";
+                    "drop function if exists " + getUdfFullName("poisson") + "; create function " + getUdfFullName("poisson") + " as 'edu.umich.tajik.verdict.hive.udf.Poisson';\n" +
+                    "drop function if exists " + getUdfFullName("poisson_sum") + "; create function " + getUdfFullName("poisson_sum") + " as 'edu.umich.tajik.verdict.hive.uda.Sum';\n" +
+                    "drop function if exists " + getUdfFullName("poisson_count") + "; create function " + getUdfFullName("poisson_count") + " as 'edu.umich.tajik.verdict.hive.uda.Count';\n" +
+                    "drop function if exists " + getUdfFullName("poisson_avg") + "; create function " + getUdfFullName("poisson_avg") + " as 'edu.umich.tajik.verdict.hive.uda.Avg';\n" +
+                    "drop function if exists " + getUdfFullName("poisson_wcount") + "; create function " + getUdfFullName("poisson_wcount") + " as 'edu.umich.tajik.verdict.hive.uda.WeightedCount';\n" +
+                    "drop function if exists " + getUdfFullName("poisson_wavg") + "; create function " + getUdfFullName("poisson_wavg") + " as 'edu.umich.tajik.verdict.hive.uda.WeightedAvg'";
             for (String q : initStatements.split(";"))
                 if (!q.trim().isEmpty())
                     executeStatement(q);
@@ -76,7 +76,7 @@ public class HiveMetaDataManager extends MetaDataManager {
                     .append(", r.")
                     .append(getWeightColumn());
             for (int i = 1; i <= sample.getPoissonColumns(); i++)
-                buf.append("," + METADATA_DATABASE + ".poisson(cast(rand() * ").append(i).append(" as int)) as v__p").append(i);
+                buf.append(",").append(getUdfFullName("poisson")).append("(cast(rand() * ").append(i).append(" as int)) as v__p").append(i);
             buf.append(" from ")
                     .append(strataWeights)
                     .append(" as r join ")
@@ -99,7 +99,7 @@ public class HiveMetaDataManager extends MetaDataManager {
                 .append(getSampleFullName(sample))
                 .append(" as select *");
         for (int i = 1; i <= sample.getPoissonColumns(); i++)
-            buf.append("," + METADATA_DATABASE + ".poisson(cast(rand() * ").append(i).append(" as int)) as v__p").append(i);
+            buf.append(",").append(getUdfFullName("poisson")).append("(cast(rand() * ").append(i).append(" as int)) as v__p").append(i);
         buf.append(" from ").append(sample.getTableName()).append(" tablesample(bucket 1 out of ").append(buckets).append(" on rand())");
         executeStatement(buf.toString());
     }

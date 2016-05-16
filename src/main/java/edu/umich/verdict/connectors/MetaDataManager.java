@@ -206,4 +206,14 @@ public abstract class MetaDataManager {
     public void setCurrentSchema(String currentSchema) {
         this.currentSchema = currentSchema;
     }
+
+    public String getUdfFullName(String udf){
+        if(this.supportsSchemaUdf())
+            return METADATA_DATABASE+"."+udf;
+        return METADATA_DATABASE+"_"+udf;
+    }
+
+    protected boolean supportsSchemaUdf(){
+        return true;
+    }
 }
