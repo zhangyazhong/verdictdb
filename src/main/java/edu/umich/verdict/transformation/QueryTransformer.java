@@ -18,6 +18,7 @@ public abstract class QueryTransformer {
     protected static final List<String> supportedAggregates = Arrays.asList("avg sum count".split(" "));
     protected final MetaDataManager metaDataManager;
     protected final TokenStreamRewriter rewriter;
+    private Sample sample = null;
     protected SelectStatement q;
     protected TransformedQuery transformed;
     protected int bootstrapTrials;
@@ -56,6 +57,8 @@ public abstract class QueryTransformer {
         showErrors = !conf.get("error_columns").isEmpty();
         sampleType = conf.get("sample_type").toLowerCase();
         transformed = new TransformedQuery(q, bootstrapTrials, confidence, conf.get("bootstrap.method").toLowerCase());
+        if (conf.get("bootstrap.fixed_sample") != null)
+            sample = metaDataManager.getSampleByName(conf.get("bootstrap.fixed_sample"));
     }
 
     public TransformedQuery transform() throws SQLException {
@@ -116,6 +119,8 @@ public abstract class QueryTransformer {
     }
 
     protected Sample getSample(String tableName) {
+        if (sample != null)
+            return sample.getTableName().equals(tableName) ? sample : null;
         Sample best = null;
         for (Sample s : metaDataManager.getTableSamples(tableName)) {
             if ((s instanceof StratifiedSample && sampleType.equals("uniform")) || (!(s instanceof StratifiedSample) && sampleType.equals("stratified")))

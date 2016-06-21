@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * used for query processing to interact with the underlying DBMS.
  */
 public abstract class MetaDataManager {
-    public static final String METADATA_DATABASE = "verdict";
+    public static final String METADATA_DATABASE = "expr";
     public static final int MIN_ROW_FOR_STRATA = 100;
     protected ArrayList<Sample> samples = new ArrayList<>();
     protected DbConnector connector;
@@ -185,6 +185,10 @@ public abstract class MetaDataManager {
             res.add(columnName);
         }
         return res;
+    }
+
+    public Sample getSampleByName(String name) {
+        return samples.stream().filter(sample -> sample.getName().equals(name)).findAny().orElse(null);
     }
 
     public int getSamplesCount() {
