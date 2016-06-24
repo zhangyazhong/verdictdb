@@ -57,8 +57,8 @@ public abstract class QueryTransformer {
         showErrors = !conf.get("error_columns").isEmpty();
         sampleType = conf.get("sample_type").toLowerCase();
         transformed = new TransformedQuery(q, bootstrapTrials, confidence, conf.get("bootstrap.method").toLowerCase());
-        if (conf.get("bootstrap.fixed_sample") != null)
-            sample = metaDataManager.getSampleByName(conf.get("bootstrap.fixed_sample"));
+        if (conf.get("fixed_sample") != null)
+            sample = metaDataManager.getSampleByName(conf.get("fixed_sample"));
     }
 
     public TransformedQuery transform() throws SQLException {

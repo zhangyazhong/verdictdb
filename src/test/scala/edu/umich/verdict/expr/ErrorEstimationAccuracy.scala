@@ -29,12 +29,12 @@ class ErrorEstimationAccuracy() {
     Parser.parse(q).run(conf, connector)
   }
 
-  def sampleName(i: Int) = s"error_test${if (conf.get("bootstrap.sample_type").equals("stratified")) "_stra" else ""}_${table}_s$i"
+  def sampleName(i: Int) = s"error_test${if (conf.get("sample_type").equals("stratified")) "_stra" else ""}_${table}_s$i"
 
   def createSamples(): Unit = {
     for (i <- 1 to nSamples) {
       try {
-        if (conf.get("bootstrap.sample_type").equals("stratified"))
+        if (conf.get("sample_type").equals("stratified"))
           execute(s"create sample ${sampleName(i)} from $table with size $sampleSize% store $nPoissonCols poisson columns stratified by " + strataColumns)
         else
           execute(s"create sample ${sampleName(i)} from $table with size $sampleSize% store $nPoissonCols poisson columns")
@@ -60,12 +60,12 @@ class ErrorEstimationAccuracy() {
   }
 
   def runApproximates() = {
-    execute(s"set bootstrap.sample_size = $sampleSize%")
+    execute(s"set sample_size = $sampleSize%")
     execute("set approximation = on")
     queries.zipWithIndex.foreach(q => {
       val pw = new PrintWriter(new File(s"error-test/$dir/${q._2}/approx"))
       for (i <- 1 to nSamples) {
-        execute(s"set bootstrap.fixed_sample = ${sampleName(i)}")
+        execute(s"set fixed_sample = ${sampleName(i)}")
         ResultWriter.writeResultSet(pw, execute(q._1))
       }
       pw.close()
@@ -136,7 +136,7 @@ class ErrorEstimationAccuracy() {
 
   def printConfidenceIntervalError(method: String = "diff") = {
     def exactConfidenceInterval(exactVal: Double, apps: Array[ApproxResult]) = {
-      val confidence = if (conf != null) conf.getPercent("bootstrap.confidence") else .95
+      val confidence = if (conf != null) conf.getPercent("confidence") else .95
       val trials: Int = apps.length
       val sortedVals = apps.map(_.value).sortBy(x => math.abs(exactVal - x))
       val bound = sortedVals(math.ceil(trials * confidence - 1).asInstanceOf[Int])
@@ -233,10 +233,10 @@ class ErrorEstimationAccuracy() {
     pw.println(s"table = ${table}")
     pw.println(s"nSamples = ${nSamples}")
     pw.println(s"sampleSize = ${sampleSize}")
-    pw.println(s"confidence = ${conf.get("bootstrap.confidence")}")
+    pw.println(s"confidence = ${conf.get("confidence")}")
     pw.println(s"trials = ${conf.get("bootstrap.trials")}")
     pw.println(s"method = ${conf.get("bootstrap.method")}")
-    pw.println(s"sampleType = ${conf.get("bootstrap.sample_type")}")
+    pw.println(s"sampleType = ${conf.get("sample_type")}")
     pw.println(s"strataColumns = ${strataColumns}")
     pw.close()
     queries.indices.foreach(i => {
@@ -254,9 +254,9 @@ object ErrorEstimationAccuracy {
         val etest = new ErrorEstimationAccuracy()
         etest.nSamples = nSamples
         etest.queries = Source.fromFile(new File(this.getClass.getClassLoader.getResource(s"expr/querySet$querySet.sql").getFile)).mkString.split(";")
-        etest.conf.set("bootstrap.sample_type", if (stratified) "stratified" else "uniform")
+        etest.conf.set("sample_type", if (stratified) "stratified" else "uniform")
         etest.conf.set("bootstrap.trials", trials + "")
-        etest.conf.set("bootstrap.confidence", (confidence*100) + "%")
+        etest.conf.set("confidence", (confidence*100) + "%")
         etest.conf.set("bootstrap.method", m)
         etest.run()
       })
