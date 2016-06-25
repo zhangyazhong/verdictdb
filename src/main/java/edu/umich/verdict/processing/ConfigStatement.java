@@ -18,7 +18,8 @@ public class ConfigStatement extends VerdictStatement {
             "confidence",
             "sample_size",
             "sample_type",
-            "error_columns"
+            "error_columns",
+            "fixed_sample"
     ));
 
     private final String key;
