@@ -120,7 +120,7 @@ public abstract class QueryTransformer {
 
     protected Sample getSample(String tableName) {
         if (sample != null)
-            return sample.getTableName().equals(tableName) ? sample : null;
+            return sample.getTableName().equals(tableName) || sample.getTableName().equals(metaDataManager.getTableNameWithSchema(tableName)) ? sample : null;
         Sample best = null;
         for (Sample s : metaDataManager.getTableSamples(tableName)) {
             if ((s instanceof StratifiedSample && sampleType.equals("uniform")) || (!(s instanceof StratifiedSample) && sampleType.equals("stratified")))
