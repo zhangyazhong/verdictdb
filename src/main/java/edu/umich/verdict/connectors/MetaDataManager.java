@@ -107,10 +107,10 @@ public abstract class MetaDataManager {
     }
 
     public List<Sample> getTableSamples(String tableName) {
-        tableName = getTableNameWithSchema(tableName);
+        String tableNameWithSchema = getTableNameWithSchema(tableName);
         ArrayList<Sample> results = new ArrayList<>();
         for (Sample s : samples)
-            if (s.getTableName().equals(tableName))
+            if (s.getTableName().equals(tableName) || s.getTableName().equals(tableNameWithSchema))
                 results.add(s);
         return results;
     }
@@ -147,8 +147,10 @@ public abstract class MetaDataManager {
             buf.append(" and stratified<>true");
         if (type.equals("stratified"))
             buf.append(" and stratified=true");
-        if (table != null)
-            buf.append(" and table_name='").append(getTableNameWithSchema(table)).append("' ");
+        if (table != null) {
+            buf.append(" and (table_name='").append(getTableNameWithSchema(table)).append("' ");
+            buf.append(" or table_name='").append(table).append("') ");
+        }
         return getSamplesInfoQuery(buf.toString());
     }
 
