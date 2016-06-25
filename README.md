@@ -1,11 +1,11 @@
 # Verdict
-
+(Website: http://verdictdb.org/)
 
 ## 1. Introduction
 Verdict makes database users able to get fast, approximate results for their aggregate queries on big data. 
 It is designed to be a middleware standing between user's application and the DBMS.
 Verdict gets the original query from user, transforms it and sends the new query(s) to the DBMS, and gets some raw results back. Then verdict calculates error estimates and return them along with the approximate answers to the user.
-Verdict supports both uniform and stratified samples. It uses the bootstrap method for error estimation which makes it able to support fairly complex queries.
+Verdict supports both uniform and stratified samples. It uses the bootstrap method for error estimation, enabling it to support  complex queries. For more information, refer to http://verdictdb.org/
 
 
 <p align="center">
@@ -157,7 +157,7 @@ The default values of these options can be specified in the config file. You can
 |`approximation`    |`on`           |A boolean value `on/off` that switches approximate query processing on and off. Verdict doesn't do anything and just submits the original queries to the DBMS if this option is set to `off`.|
 |`sample_size`|`1%`   |A percentage that determines the preferred size for the sample (relative to the actual table) used for running approximate query. Choosing a small sample makes your queries faster but with higher error. When multiple samples are present for a table, Verdict tries to use the sample which size is closest to this value.|
 |`sample_type`|`uniform`   |This option tells Verdict what kind of sample (`uniform` or `stratified`) do you prefer to run your query on. If both kind of samples are present for a table, Verdict tries to chose the one that is the kind specified in this option.|
-|`error_columns`|`conf_inv`     | This options tells Verdict to generate what extra columns for error estimation in the query results. You can specify any combination of the following: confidence intervals (`conf_inv_`), error bound (`err`), error bound percentage (`err_percent`) and variance (`variance`). To specify more than one, seperate them with comma, for example using value `conf_inv, err_percent` will generate two more columns for each aggregate expression in the result set, one for confidence intervals and one for error bound percentages.
+|`error_columns`|`conf_inv`     | This options tells Verdict to generate what extra columns for error estimation in the query results. You can specify any combination of the following: confidence intervals (`conf_inv`), error bound (`err`), error bound percentage (`err_percent`) and variance (`variance`). To specify more than one, seperate them with comma, for example using value `conf_inv, err_percent` will generate two more columns for each aggregate expression in the result set, one for confidence intervals and one for error bound percentages.
 |`confidence`|`95%`   |A percentage that determines the confidence level for reporting the confidence interval (error estimation). For example when it is set to 95%, it means that Verdict is 95% confident that the true answer for the query is in the provided bound.|
 |`bootstrap.method`    |`uda`   |This option can have one of the values `uda`,`udf` or `stored`. It determines the method Verdict uses to perform bootstrap trials for calculating estimated error. Usually the `uda` method is the fastest, but other two options are useful for the DBMSs that don't support UDA (user defined aggregate function).|
 |`bootstrap.trials`    |`50`   |An integer specifying the number of bootstrap trials being run for calculating error estimation. Usually `50` or `100` work well. Choosing a very small number reduces the accuracy of error estimations, while a very large number of bootstrap trials makes thee query slow.|
