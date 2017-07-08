@@ -14,7 +14,7 @@ public class ParsingTest {
 	public void test() throws VerdictException {
 		VerdictConf conf = new VerdictConf();
 		conf.setDbms("dummy");
-		VerdictContext vc = new VerdictContext(conf);
+		VerdictContext vc = VerdictContext.from(conf);
 		
 		Relation r = SingleRelation.from(vc, "orders")
 					 .where(String.format("abs(fnv_hash(%s)) %% 10000 <= %.4f", "order_dow", 0.01*10000))
