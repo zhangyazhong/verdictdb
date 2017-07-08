@@ -1,12 +1,5 @@
 package edu.umich.verdict.relation.expr;
 
-import static org.junit.Assert.*;
-
-import java.io.FileNotFoundException;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import edu.umich.verdict.VerdictConf;
