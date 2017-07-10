@@ -15,7 +15,7 @@ public class ImpalaDropSampleTest {
 		conf.set("no_user_password", "true");
 
 		VerdictJDBCContext vc = VerdictJDBCContext.from(conf);
-		vc.executeQuery("drop sample of orders");
+		vc.executeJdbcQuery("drop sample of orders");
 		vc.destroy();
 		System.out.println("Done");
 	}
