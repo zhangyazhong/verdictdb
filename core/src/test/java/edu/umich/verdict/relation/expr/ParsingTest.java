@@ -23,7 +23,7 @@ public class ParsingTest {
 		
 		System.out.println(sql);
 		
-		System.out.println(Relation.prettyfySql(sql));
+		System.out.println(Relation.prettyfySql(vc, sql));
 	}
 
 }
