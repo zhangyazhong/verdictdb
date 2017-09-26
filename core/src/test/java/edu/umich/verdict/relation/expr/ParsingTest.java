@@ -15,26 +15,32 @@
  * limitations under the License.
  */
 
-package edu.umich.verdict.impala;
+package edu.umich.verdict.relation.expr;
+
+import org.junit.Test;
 
 import edu.umich.verdict.VerdictConf;
 import edu.umich.verdict.VerdictJDBCContext;
 import edu.umich.verdict.exceptions.VerdictException;
+import edu.umich.verdict.relation.Relation;
+import edu.umich.verdict.relation.SingleRelation;
 
-public class ImpalaDropSampleTest {
+public class ParsingTest {
 
-    public static void main(String[] args) throws VerdictException {
+    @Test
+    public void test() throws VerdictException {
         VerdictConf conf = new VerdictConf();
-        conf.setHost("salat1.eecs.umich.edu");
-        conf.setDbms("impala");
-        conf.setPort("21050");
-        conf.setDbmsSchema("instacart1g");
-        conf.set("no_user_password", "true");
-
+        conf.setDbms("dummy");
         VerdictJDBCContext vc = VerdictJDBCContext.from(conf);
-        vc.executeJdbcQuery("drop sample of orders");
-        vc.destroy();
-        System.out.println("Done");
+
+        Relation r = SingleRelation.from(vc, "orders")
+                .where(String.format("abs(fnv_hash(%s)) %% 10000 <= %.4f", "order_dow", 0.01 * 10000))
+                .select("*, round(rand(unix_timestamp())*100)%100 AS " + "verdict_partition");
+        String sql = r.toSql();
+
+        System.out.println(sql);
+
+        System.out.println(Relation.prettyfySql(vc, sql));
     }
 
 }
