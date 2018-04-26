@@ -16,24 +16,22 @@
 
 package edu.umich.verdict.tpch;
 
-import java.io.FileNotFoundException;
-
-import edu.umich.verdict.TestBase;
 import edu.umich.verdict.VerdictConf;
 import edu.umich.verdict.VerdictContext;
 import edu.umich.verdict.VerdictJDBCContext;
 import edu.umich.verdict.exceptions.VerdictException;
 
-public class TpchQuery6 {
+import java.io.FileNotFoundException;
+
+public class TpchQuery4 {
 
     public static void main(String[] args) throws VerdictException, FileNotFoundException {
         VerdictConf conf = new VerdictConf();
         /*
         conf.setDbms("impala");
-        conf.setHost(TestBase.readHost());
+        conf.setHost("salat3.eecs.umich.edu");
         conf.setPort("21050");
         conf.setDbmsSchema("tpch1g");
-        conf.set("verdict.meta_data.meta_database_suffix", "_verdict_impala");
         conf.set("loglevel", "debug");
         */
         conf.setDbms("postgresql");
@@ -43,18 +41,52 @@ public class TpchQuery6 {
         conf.setUser("postgres");
         conf.setPassword("zhongshucheng123");
         conf.set("loglevel", "debug");
+
+
         VerdictContext vc = VerdictJDBCContext.from(conf);
-        String sql = "select\n" + 
-                " sum(l_extendedprice * l_discount) as revenue\n" + 
-                "from\n" + 
-                " lineitem\n" + 
-                "where\n" + 
-                " l_shipdate >= '1994-01-01'\n" + 
-                " and l_shipdate < '1995-01-01'\n" + 
-                " and l_discount between 0.05 and  0.07\n" + 
-                " and l_quantity < 24;\n";
+        String sql = "select\n" +
+                " o_orderpriority,\n" +
+                " count(*) as order_count\n" +
+                "from\n" +
+                " orders\n" +
+                "where\n" +
+                " o_orderdate >= '1993-07-01'\n" +
+                " and o_orderdate < '1993-10-01'\n" +
+                " and exists (\n" +
+                "  select\n" +
+                "   *\n" +
+                "  from\n" +
+                "   lineitem\n" +
+                "  where\n" +
+                "   l_orderkey = o_orderkey\n" +
+                "   and l_commitdate < l_receiptdate\n" +
+                "  )\n" +
+                "group by\n" +
+                " o_orderpriority\n" +
+                "order by\n" +
+                " o_orderpriority";
+//        String sql = "select\n" +
+//                "*\n" +
+//                "from\n" +
+//                " orders\n" +
+//                "where\n" +
+//                "exists (\n" +
+//                "  select\n" +
+//                "   *\n" +
+//                "  from\n" +
+//                "   lineitem\n" +
+//                ")";
+//        String sql ="select\n" +
+//                "*\n" +
+//                "from\n" +
+//                " orders\n" +
+//                "where\n" +
+//                "orders.a = 1";
+
+
         vc.executeJdbcQuery(sql);
 
         vc.destroy();
     }
+
 }
