@@ -16,6 +16,8 @@
 
 package edu.umich.verdict.relation;
 
+import edu.umich.verdict.util.VerdictLogger;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -135,8 +137,8 @@ public class SamplePlans {
                     bestScore = thisScore;
                     best = plan;
                 }
-                // VerdictLogger.debug(this, plan.toString() + ", cost: " + cost + ", prob: " +
-                // plan.harmonicSamplingProb());
+                 VerdictLogger.debug(this, plan.toString() + ", cost: " + cost + ", prob: " +
+                 plan.harmonicSamplingProb());
             }
 
             if (cost < fallbackCost) {
