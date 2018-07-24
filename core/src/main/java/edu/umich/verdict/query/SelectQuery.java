@@ -27,6 +27,7 @@ import edu.umich.verdict.relation.ApproxRelation;
 import edu.umich.verdict.relation.ExactRelation;
 import edu.umich.verdict.relation.Relation;
 import edu.umich.verdict.util.StringManipulations;
+import edu.umich.verdict.util.VerdictLogger;
 
 import java.util.Map;
 
@@ -36,7 +37,7 @@ public class SelectQuery extends Query {
         super(vc, queryString);
     }
 
-    public static Relation queryToRelation(VerdictContext vc, String sql) throws VerdictException {
+    private Relation queryToRelation(VerdictContext vc, String sql) throws VerdictException {
         ExactRelation r = ExactRelation.from(vc, sql);
 
         VerdictSQLParser p = StringManipulations.parserOf(sql);
@@ -48,10 +49,21 @@ public class SelectQuery extends Query {
         };
         Boolean exact = visitor.visit(p.select_statement());
 
+        // DEBUG: zyz added
+        VerdictLogger.debug(this, "exact: " + exact);
+
         if (exact) {
             return r;
         } else {
             Map<TableUniqueName, SampleParam> forcedSamples = VerdictConf.getSamplesToUse();
+
+            // DEBUG: zyz added
+            if (forcedSamples == null) {
+                VerdictLogger.debug(this, "forcedSamples is null");
+            } else {
+                forcedSamples.forEach((name, sample) -> VerdictLogger.debug(this, "(name, sample): " + name + " | " + sample.toString()));
+            }
+
             ApproxRelation a = (forcedSamples == null) ? r.approx() : r.approxWith(forcedSamples);
             return a;
         }

@@ -283,14 +283,29 @@ public abstract class Dbms {
     public void createMetaTablesInDBMS(TableUniqueName originalTableName, TableUniqueName sizeTableName,
                                        TableUniqueName nameTableName) throws VerdictException {
         VerdictLogger.debug(this, "Creates meta tables if not exist.");
-        String sql = String.format("CREATE TABLE IF NOT EXISTS %s", sizeTableName) + " (schemaname STRING, "
-                + " tablename STRING, " + " samplesize BIGINT, " + " originaltablesize BIGINT)";
-        executeUpdate(sql);
+        boolean sizeTableExists = false;
+        boolean nameTableExists = false;
+        List<String> tables = getTables(sizeTableName.getSchemaName());
+        for (String table : tables) {
+            if (table.equals(sizeTableName.getTableName())) {
+                sizeTableExists = true;
+            }
+            if (table.equals(nameTableName.getTableName())) {
+                nameTableExists = true;
+            }
+        }
+        if (!sizeTableExists) {
+            String sql = String.format("CREATE TABLE IF NOT EXISTS %s", sizeTableName) + " (schemaname STRING, "
+                    + " tablename STRING, " + " samplesize BIGINT, " + " originaltablesize BIGINT)";
+            executeUpdate(sql);
+        }
 
-        sql = String.format("CREATE TABLE IF NOT EXISTS %s", nameTableName) + " (originalschemaname STRING, "
-                + " originaltablename STRING, " + " sampleschemaaname STRING, " + " sampletablename STRING, "
-                + " sampletype STRING, " + " samplingratio DOUBLE, " + " columnnames STRING)";
-        executeUpdate(sql);
+        if (!nameTableExists) {
+            String sql = String.format("CREATE TABLE IF NOT EXISTS %s", nameTableName) + " (originalschemaname STRING, "
+                    + " originaltablename STRING, " + " sampleschemaaname STRING, " + " sampletablename STRING, "
+                    + " sampletype STRING, " + " samplingratio DOUBLE, " + " columnnames STRING)";
+            executeUpdate(sql);
+        }
 
         VerdictLogger.debug(this, "Meta tables created.");
         vc.getMeta().refreshTables(sizeTableName.getDatabaseName());
@@ -329,7 +344,7 @@ public abstract class Dbms {
         String sql = String.format("create table %s as %s", temp, sampled.toSql());
         VerdictLogger.debug(this, "The query used for creating a temporary table without sampling probabilities:");
 //        VerdictLogger.debug(this, sql);
-//        VerdictLogger.debugPretty(this, Relation.prettyfySql(vc, sql), "  ");
+        VerdictLogger.debugPretty(this, Relation.prettyfySql(vc, sql), "  ");
         executeUpdate(sql);
         return temp;
     }
@@ -354,7 +369,7 @@ public abstract class Dbms {
 
         String sql = String.format("create table %s%s as %s", param.sampleTableName(), storeString, withRand.toSql());
         VerdictLogger.debug(this, "The query used for creating a temporary table with sampling probabilities:");
-//        VerdictLogger.debugPretty(this, Relation.prettyfySql(vc, sql), "  ");
+        VerdictLogger.debugPretty(this, Relation.prettyfySql(vc, sql), "  ");
 //        VerdictLogger.debug(this, sql);
         executeUpdate(sql);
         return sample_size;

@@ -135,6 +135,9 @@ public class AggregatedRelation extends ExactRelation {
         // these are candidates for the sources of this relation
         List<List<SampleGroup>> candidates_list = new ArrayList<List<SampleGroup>>();
 
+        // DEBUG: zyz added
+        VerdictLogger.debug(this, "source: " + source.toString());
+
         for (int i = 0; i < elems.size(); i++) {
             SelectElem elem = elems.get(i);
             Expr agg = elem.getExpr();
